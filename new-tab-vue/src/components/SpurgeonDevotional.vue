@@ -12,13 +12,17 @@
         class="devo-card"
         :class="devo.period"
       >
-        <div class="devo-header">
-          <i :class="devo.period === 'morning' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
-          <span class="devo-period">{{ devo.thoughtPeriod }} - {{ devo.duration }} minute read</span>
+        <div class="devo-header-wrapper">
+          <div class="devo-header">
+            <i :class="devo.period === 'morning' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
+            <span class="devo-period">{{ devo.thoughtPeriod }} - {{ devo.duration }} minute read</span>
+          </div>
+          <button class="tts-button" @click="toggleSpeak(devo)">
+            {{ isSpeaking(devo) ? '⏸️' : '🔊' }}
+          </button>
         </div>
 
         <h3 class="devo-title">{{ devo.title }}</h3>
-        
 
         <div class="devo-body-container">
           <div v-html="devo.body" class="devo-body"/>
@@ -34,6 +38,10 @@ import { ref, onMounted, computed } from 'vue'
 const loading = ref(true)
 const error = ref(false)
 const devotionals = ref([])
+
+// TTS state
+let currentUtterance = null
+const speakingDevo = ref(null)
 
 const FEEDS = [
   { url: 'https://feeds.feedburner.com/hl-devos-spurgeon-morning', period: 'morning' },
@@ -59,7 +67,6 @@ function extractThought(html) {
   return { thoughtPeriod, body }
 }
 
-// --- Remove all rtBibleRef elements ---
 function removeRtBibleRef(html) {
   const parser = new DOMParser()
   const doc = parser.parseFromString(html, 'text/html')
@@ -67,7 +74,6 @@ function removeRtBibleRef(html) {
   return doc.body.innerHTML
 }
 
-// --- Cache helper ---
 function cacheGet(key) {
   const cached = localStorage.getItem(key)
   if (!cached) return null
@@ -84,10 +90,9 @@ function cacheSet(key, value, ttlMs) {
   localStorage.setItem(key, JSON.stringify(obj))
 }
 
-// --- ESV reference replacement with caching ---
 async function replaceReferencesWithESV(html) {
   const referenceRegex = /\b([1-3]?\s?[A-Za-z]+)\s(\d+:\d+(-\d+)?(,\s?\d+:\d+)*)\b/g
-  const apiKey = 'YOUR_ESV_API_KEY' // replace with your ESV API key
+  const apiKey = 'YOUR_ESV_API_KEY'
   const matches = [...html.matchAll(referenceRegex)]
   let newHtml = html
 
@@ -102,7 +107,7 @@ async function replaceReferencesWithESV(html) {
         })
         const data = await res.json()
         passage = data.passages?.[0]?.replace(/\n/g, ' ') || refText
-        cacheSet(cacheKey, passage, 24*60*60*1000) // cache 1 day
+        cacheSet(cacheKey, passage, 24*60*60*1000)
       } catch {
         passage = refText
       }
@@ -113,23 +118,14 @@ async function replaceReferencesWithESV(html) {
 }
 
 function readingTime(html) {
-  // Create a temporary element to strip HTML
-  
-
-  // Extract plain text
-  const text = html.textContent || html.innerText || "";
-
-  // Count words
-  const wordCount = text.trim().split(/\s+/).length;
-
-  // Average reading speed in words per minute
-  const wordsPerMinute = 200; // adjust for complexity
-
-  // Calculate reading time (round up)
-  return Math.ceil(wordCount / wordsPerMinute);
+  const tempEl = document.createElement('div')
+  tempEl.innerHTML = html
+  const text = tempEl.textContent || tempEl.innerText || ""
+  const wordCount = text.trim().split(/\s+/).length
+  const wordsPerMinute = 200
+  return Math.ceil(wordCount / wordsPerMinute)
 }
 
-// --- Load single devotional with caching ---
 async function loadDevo(url, period) {
   const cacheKey = `devos_${period}`
   let devo = cacheGet(cacheKey)
@@ -143,9 +139,9 @@ async function loadDevo(url, period) {
   if (!item) throw new Error('No devotional found')
 
   let rawHtml = item.description || item.content || ''
-  rawHtml = removeRtBibleRef(rawHtml) // remove rtBibleRef elements
+  rawHtml = removeRtBibleRef(rawHtml)
   const { thoughtPeriod, body: bodyHtml } = extractThought(rawHtml)
-  const duration = readingTime(thoughtPeriod);  
+  const duration = readingTime(bodyHtml)
   const bodyWithRefs = await replaceReferencesWithESV(bodyHtml)
   const body = splitIntoParagraphs(bodyWithRefs, 3)
 
@@ -158,11 +154,10 @@ async function loadDevo(url, period) {
     duration
   }
 
-  cacheSet(cacheKey, devo, 24*60*60*1000) // cache 1 day
+  cacheSet(cacheKey, devo, 24*60*60*1000)
   return devo
 }
 
-// --- On mount ---
 onMounted(async () => {
   try {
     const results = await Promise.all(FEEDS.map(f => loadDevo(f.url, f.period)))
@@ -175,13 +170,46 @@ onMounted(async () => {
   }
 })
 
-// --- Visible devotionals by time ---
 const visibleDevotionals = computed(() => {
   const hour = new Date().getHours()
   return devotionals.value.filter(d =>
     (hour < 12 && d.period === 'morning') || (hour >= 12 && d.period === 'evening')
   )
 })
+
+// --- TTS Functions ---
+function toggleSpeak(devo) {
+  if (speakingDevo.value === devo) {
+    if (speechSynthesis.paused) {
+      speechSynthesis.resume()
+    } else {
+      speechSynthesis.pause()
+    }
+  } else {
+    speechSynthesis.cancel()
+    speakingDevo.value = devo
+
+    const text = devo.body.replace(/<[^>]*>/g, ' ')
+    currentUtterance = new SpeechSynthesisUtterance(text)
+    currentUtterance.rate = 1
+    currentUtterance.pitch = 1
+    currentUtterance.lang = 'en-US'
+
+    const voices = speechSynthesis.getVoices()
+    const maleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))
+    if (maleVoice) currentUtterance.voice = maleVoice
+
+    currentUtterance.onend = () => {
+      speakingDevo.value = null
+    }
+
+    speechSynthesis.speak(currentUtterance)
+  }
+}
+
+function isSpeaking(devo) {
+  return speakingDevo.value === devo && (speechSynthesis.speaking || speechSynthesis.paused)
+}
 </script>
 
 <style scoped>
@@ -216,11 +244,32 @@ const visibleDevotionals = computed(() => {
 .devo-card.morning { border-left-color: #f59e0b; }
 .devo-card.evening { border-left-color: #818cf8; }
 
+.devo-header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .devo-header {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
+}
+
+.tts-button {
+  background: #475569;
+  color: #f1f5f9;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tts-button:hover {
+  background: #64748b;
 }
 
 .devo-period {
