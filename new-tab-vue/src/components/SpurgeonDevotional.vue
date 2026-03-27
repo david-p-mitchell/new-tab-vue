@@ -14,10 +14,11 @@
       >
         <div class="devo-header">
           <i :class="devo.period === 'morning' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
-          <span class="devo-period">{{ devo.thoughtPeriod }}</span>
+          <span class="devo-period">{{ devo.thoughtPeriod }} - {{ devo.duration }} minute read</span>
         </div>
 
         <h3 class="devo-title">{{ devo.title }}</h3>
+        
 
         <div class="devo-body-container">
           <div v-html="devo.body" class="devo-body"/>
@@ -34,19 +35,16 @@ const loading = ref(true)
 const error = ref(false)
 const devotionals = ref([])
 
-// Example feeds
 const FEEDS = [
   { url: 'https://feeds.feedburner.com/hl-devos-spurgeon-morning', period: 'morning' },
   { url: 'https://feeds.feedburner.com/hl-devos-spurgeon-evening', period: 'evening' },
 ]
 
-// Split text into paragraphs
+// --- Helpers ---
 function splitIntoParagraphs(text, sentencesPerPara = 3) {
-  const sentences = text
-    .replace(/\n/g, ' ')
-    .split(/(?<=[.!?;:])\s+/)
-    .filter(s => s.trim().length > 0)
-
+  const sentences = text.replace(/\n/g, ' ')
+                        .split(/(?<=[.!?;:])\s+/)
+                        .filter(s => s.trim())
   const paragraphs = []
   for (let i = 0; i < sentences.length; i += sentencesPerPara) {
     paragraphs.push('<p>' + sentences.slice(i, i + sentencesPerPara).join(' ') + '</p><br/>')
@@ -54,7 +52,6 @@ function splitIntoParagraphs(text, sentencesPerPara = 3) {
   return paragraphs.join('')
 }
 
-// Extract Morning/Evening Thought heading
 function extractThought(html) {
   const match = html.match(/<h4>(.*?)<\/h4>/i)
   const thoughtPeriod = match ? match[1] : ''
@@ -62,32 +59,82 @@ function extractThought(html) {
   return { thoughtPeriod, body }
 }
 
-// Replace Bible references with ESV text
+// --- Remove all rtBibleRef elements ---
+function removeRtBibleRef(html) {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  doc.querySelectorAll('.rtBibleRef').forEach(el => el.remove())
+  return doc.body.innerHTML
+}
+
+// --- Cache helper ---
+function cacheGet(key) {
+  const cached = localStorage.getItem(key)
+  if (!cached) return null
+  const { value, expiry } = JSON.parse(cached)
+  if (Date.now() > expiry) {
+    localStorage.removeItem(key)
+    return null
+  }
+  return value
+}
+
+function cacheSet(key, value, ttlMs) {
+  const obj = { value, expiry: Date.now() + ttlMs }
+  localStorage.setItem(key, JSON.stringify(obj))
+}
+
+// --- ESV reference replacement with caching ---
 async function replaceReferencesWithESV(html) {
   const referenceRegex = /\b([1-3]?\s?[A-Za-z]+)\s(\d+:\d+(-\d+)?(,\s?\d+:\d+)*)\b/g
-  const apiKey = 'YOUR_ESV_API_KEY' // get one from https://api.esv.org
+  const apiKey = 'YOUR_ESV_API_KEY' // replace with your ESV API key
   const matches = [...html.matchAll(referenceRegex)]
   let newHtml = html
 
   for (const match of matches) {
     const refText = match[0]
-    try {
-      const res = await fetch(`https://api.esv.org/v3/passage/text/?q=${encodeURIComponent(refText)}`, {
-        headers: { Authorization: `Token ${apiKey}` },
-      })
-      const data = await res.json()
-      const passage = data.passages?.[0]?.replace(/\n/g, ' ') || refText
-      newHtml = newHtml.replace(refText, `<strong>${refText}:</strong> ${passage}`)
-    } catch {
-      // leave original text if API fails
-      continue
+    const cacheKey = `esv_${refText}`
+    let passage = cacheGet(cacheKey)
+    if (!passage) {
+      try {
+        const res = await fetch(`https://api.esv.org/v3/passage/text/?q=${encodeURIComponent(refText)}`, {
+          headers: { Authorization: `Token ${apiKey}` },
+        })
+        const data = await res.json()
+        passage = data.passages?.[0]?.replace(/\n/g, ' ') || refText
+        cacheSet(cacheKey, passage, 24*60*60*1000) // cache 1 day
+      } catch {
+        passage = refText
+      }
     }
+    newHtml = newHtml.replace(refText, `<strong>${refText}:</strong> ${passage}`)
   }
   return newHtml
 }
 
-// Load a single devotional
+function readingTime(html) {
+  // Create a temporary element to strip HTML
+  
+
+  // Extract plain text
+  const text = html.textContent || html.innerText || "";
+
+  // Count words
+  const wordCount = text.trim().split(/\s+/).length;
+
+  // Average reading speed in words per minute
+  const wordsPerMinute = 200; // adjust for complexity
+
+  // Calculate reading time (round up)
+  return Math.ceil(wordCount / wordsPerMinute);
+}
+
+// --- Load single devotional with caching ---
 async function loadDevo(url, period) {
+  const cacheKey = `devos_${period}`
+  let devo = cacheGet(cacheKey)
+  if (devo) return devo
+
   const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`
   const res = await fetch(api)
   if (!res.ok) throw new Error('Feed request failed')
@@ -95,20 +142,27 @@ async function loadDevo(url, period) {
   const item = data.items?.[0]
   if (!item) throw new Error('No devotional found')
 
-  const rawHtml = item.description || item.content || ''
+  let rawHtml = item.description || item.content || ''
+  rawHtml = removeRtBibleRef(rawHtml) // remove rtBibleRef elements
   const { thoughtPeriod, body: bodyHtml } = extractThought(rawHtml)
+  const duration = readingTime(thoughtPeriod);  
   const bodyWithRefs = await replaceReferencesWithESV(bodyHtml)
-  const body = splitIntoParagraphs(bodyWithRefs, 3) // 3 sentences per paragraph
+  const body = splitIntoParagraphs(bodyWithRefs, 3)
 
-  return {
+  devo = {
     period,
     title: item.title || '',
     thoughtPeriod: thoughtPeriod || (period === 'morning' ? 'Morning Thought' : 'Evening Thought'),
     body,
     link: item.link || url,
+    duration
   }
+
+  cacheSet(cacheKey, devo, 24*60*60*1000) // cache 1 day
+  return devo
 }
 
+// --- On mount ---
 onMounted(async () => {
   try {
     const results = await Promise.all(FEEDS.map(f => loadDevo(f.url, f.period)))
@@ -121,7 +175,7 @@ onMounted(async () => {
   }
 })
 
-// Filter visible devotionals by time
+// --- Visible devotionals by time ---
 const visibleDevotionals = computed(() => {
   const hour = new Date().getHours()
   return devotionals.value.filter(d =>
