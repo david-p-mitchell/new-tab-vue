@@ -23,7 +23,7 @@ const links = [
   flex-wrap: wrap;
   gap: 24px;
   justify-content: center;
-  margin-bottom: 24px;
+  margin-bottom: 4px;
 }
 
 .links a {

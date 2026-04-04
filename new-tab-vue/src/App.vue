@@ -5,7 +5,10 @@
     <QuickLinks />
     <div class="bottom-row">
       <FeedDashboard class="feeds-col" />
-      <SpurgeonDevotional />
+      <CIWidget />
+    </div>
+    <div>
+      <DevotionalWidget />
     </div>
   </div>
 </template>
@@ -15,7 +18,11 @@ import ClockWidget from './components/ClockWidget.vue'
 import SearchBar from './components/SearchBar.vue'
 import QuickLinks from './components/QuickLinks.vue'
 import FeedDashboard from './components/FeedDashboard.vue'
-import SpurgeonDevotional from './components/SpurgeonDevotional.vue'
+import DevotionalWidget from './components/DevotionalWidget.vue'
+import CIWidget from './components/CIWidget.vue'
+
+
+
 </script>
 
 <style>

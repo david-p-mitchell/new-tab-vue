@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard">
-    <h2>Christian Feeds</h2>
     <p v-if="loading" class="feed-status">Loading feeds...</p>
     <p v-else-if="error" class="feed-error">Unable to load feeds</p>
     <div v-else class="card-grid">
@@ -33,8 +32,7 @@ const FEED_SOURCES = [
   { url: 'https://www.thegospelcoalition.org/feed/',               name: 'TGC',           days: 3  },
   { url: 'https://www.evangelical-times.org/rss/',                 name: 'ET',            days: 5  },
   { url: 'https://www.crossway.org/articles/rss/',                 name: 'Crossway',      days: 3  },
-  { url: 'https://www.christian.org.uk/news/england-wales/rssfeed/', name: 'CI',          days: 7  },
-  { url: 'https://www.mediagratiae.org/blog?format=rss',           name: 'Media Gratiae', days: 14 },
+  { url: 'https://www.desiringgod.org/rss',                            name: 'Desiring God',  days: 3  },
   { url: 'https://www.ligonier.org/rss.xml',                       name: 'Ligonier',      days: 2  },
 ]
 
@@ -45,6 +43,7 @@ async function loadFeed(url, sourceName, days) {
     if (!res.ok) throw new Error()
     const data = await res.json()
     if (!data.items) throw new Error()
+    
     return data.items.slice(0, 20).map(item => normalizePost(item, sourceName, days))
   } catch {
     console.warn(`Feed failed: ${url}, skipping.`)
@@ -59,7 +58,9 @@ async function loadAllFeeds() {
     const allArrays = await Promise.all(
       FEED_SOURCES.map(f => loadFeed(f.url, f.name, f.days))
     )
+    //console.log('Raw feed items:', allArrays.flat())
     const processed = processPosts(allArrays.flat())
+
     saveSeenPosts(processed.map(p => p.link))
     posts.value = processed
   } catch (e) {
@@ -86,7 +87,9 @@ onMounted(loadAllFeeds)
 .dashboard {
   display: flex;
   flex-direction: column;
-  max-width: 800px;
+  max-width: 775px;
+  min-width: 775px;
+  margin-top: 12px;
 }
 
 .dashboard h2 {
@@ -94,18 +97,22 @@ onMounted(loadAllFeeds)
   font-weight: 600;
   color: #94a3b8;
   
-  margin-bottom: 12px;
 }
 
 .card-grid {
   display: flex;
   flex-direction: row;
   gap: 6px;
-  overflow-x: auto;
   scroll-behavior: smooth;
-  padding-bottom: 12px;
+  padding-bottom: 4px;
 }
 
+.feed-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
 .feed-status {
   color: #94a3b8;
   font-style: italic;
