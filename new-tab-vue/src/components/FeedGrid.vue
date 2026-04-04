@@ -20,7 +20,6 @@ const posts = ref([])
 
 const feeds = [
   {url:"https://www.challies.com/feed/", source:"Challies"},
-  {url:"https://www.desiringgod.org/feed", source:"Desiring God"},
   {url:"https://www.thegospelcoalition.org/feed/", source:"TGC"}
 ]
 

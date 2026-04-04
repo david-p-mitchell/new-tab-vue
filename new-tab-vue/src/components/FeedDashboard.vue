@@ -32,7 +32,6 @@ const FEED_SOURCES = [
   { url: 'https://www.thegospelcoalition.org/feed/',               name: 'TGC',           days: 3  },
   { url: 'https://www.evangelical-times.org/rss/',                 name: 'ET',            days: 5  },
   { url: 'https://www.crossway.org/articles/rss/',                 name: 'Crossway',      days: 3  },
-  { url: 'https://www.desiringgod.org/rss',                            name: 'Desiring God',  days: 3  },
   { url: 'https://www.ligonier.org/rss.xml',                       name: 'Ligonier',      days: 2  },
 ]
 
