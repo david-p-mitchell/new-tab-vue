@@ -1,3 +1,4 @@
+```vue
 <template>
   <div class="devotional">
 
@@ -34,12 +35,15 @@
             {{ selectedDevo.title }}
           </span>
         </div>
-        <div class="detail-body-container">
+
+        <!-- ✅ added ref -->
+        <div ref="scrollBox" class="detail-body-container">
           <img v-if="selectedDevo.img" :src="selectedDevo.img" alt="Devo image" class="devo-card-image" />
             <p class="detail-verse">{{ selectedDevo.bibleVerse }}</p>
             <p class="detail-verse-ref">{{ selectedDevo.bibleRef }}</p>
           <div class="detail-body" v-html="selectedDevo.body"></div>
         </div>
+
         <a :href="selectedDevo.link" target="_blank" class="detail-link">Read on source site →</a>
       </div>
 
@@ -52,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useT4LParser, useT4LSpurgeonParser } from '../composables/useT4LParser.js'
 import { useSpurgeonParser } from '../composables/useSpurgeonParser.js'
 import { useMediaGratiaeDevotionProcessor } from '../composables/useMediaGratiaeDevotionProcessor.js'
@@ -64,6 +68,20 @@ const selectedDevo = ref(null)
 
 let currentUtterance = null
 const speakingDevo = ref(null)
+
+/* ✅ NEW: scroll control */
+const scrollBox = ref(null)
+const SCROLL_SPEED = 0.00005
+
+const handleWheel = (e) => {
+  // allow natural trackpad scrolling
+  if (Math.abs(e.deltaY) < 10) return
+
+  e.preventDefault()
+  scrollBox.value.scrollBy({
+    top: e.deltaY * SCROLL_SPEED
+  })
+}
 
 const now = new Date();
 
@@ -88,8 +106,6 @@ function cacheSet(key, value, ttlMs) {
   localStorage.setItem(key, JSON.stringify({ value, expiry: Date.now() + ttlMs }))
 }
 
-
-
 async function loadDevo(url, period) {
   const cacheKey = `devos_${period}`
   let devo = cacheGet(cacheKey)
@@ -98,7 +114,6 @@ async function loadDevo(url, period) {
   const res = await fetch(api)
   if (!res.ok) throw new Error('Feed request failed')
   const data = await res.json()
-console.log(`Raw feed data for ${period}:`, data)
   if(period === 'Media Gratiae') {
     const recentItems = data.items.filter(item => {
       return item.categories?.[0] !== 'The Whole Counsel' 
@@ -119,7 +134,6 @@ console.log(`Raw feed data for ${period}:`, data)
     
     const t4lPost = useT4LParser(item);
     if (t4lPost) {
-      console.log('Parsed T4L post:', t4lPost)
       devo = { bibleRef: t4lPost.bibleRef, bibleVerse: t4lPost.bibleVerse, period, img: t4lPost.img, title: t4lPost.title || '', body: t4lPost.content, link: item.link || url, duration: t4lPost.duration }
       cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
       return devo
@@ -133,7 +147,7 @@ console.log(`Raw feed data for ${period}:`, data)
       return devo
     }
   }
-  else {
+  else if(period === 'morning' || period === 'evening') {
     const spurgeonPost = useSpurgeonParser(item);
     if (spurgeonPost) {
       devo = { bibleRef: spurgeonPost.bibleRef, bibleVerse: spurgeonPost.bibleVerse, period, img: spurgeonPost.img, title: spurgeonPost.title || '', body: spurgeonPost.content, link: item.link || url, duration: spurgeonPost.duration }
@@ -141,13 +155,12 @@ console.log(`Raw feed data for ${period}:`, data)
       return devo
     }
   }
-
-  // const rawHtml = item.description || item.content || ''
-  // const duration = readingTime(rawHtml)
-  // const body = splitIntoParagraphs(rawHtml)
-  // devo = { period, title: item.title || '', body, link: item.link || url, duration }
-  // cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
-  // return devo
+  else{
+    
+    devo = { bibleRef: '', bibleVerse: '', period, img: '', title: item.title || '', body: item.description || '', link: item.link || url, duration: null }
+    cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
+    return devo
+  }
 }
 
 onMounted(async () => {
@@ -155,12 +168,20 @@ onMounted(async () => {
     const results = await Promise.all(FEEDS.map(f => loadDevo(f.url, f.period)))
     devotionals.value = results
     selectedDevo.value = results[0] ?? null
+
+    /* ✅ attach scroll handler */
+    scrollBox.value?.addEventListener('wheel', handleWheel, { passive: false })
+
   } catch (e) {
     error.value = true
     console.error('Devotional feed error:', e)
   } finally {
     loading.value = false
   }
+})
+
+onBeforeUnmount(() => {
+  scrollBox.value?.removeEventListener('wheel', handleWheel)
 })
 
 function toggleSpeak(devo) {
@@ -186,6 +207,7 @@ function isSpeaking(devo) {
   return speakingDevo.value === devo && (speechSynthesis.speaking || speechSynthesis.paused)
 }
 </script>
+
 
 <style scoped>
 .devotional {

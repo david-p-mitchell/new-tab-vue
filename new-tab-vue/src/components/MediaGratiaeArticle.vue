@@ -87,7 +87,6 @@ async function loadDevo(url, period) {
   const data = await res.json()
   const item = data.items?.[0]
   if (!item) throw new Error('No devotional found')
-  console.log('Raw devotional item:', item)
   let rawHtml = item.description || item.content || ''
   const duration = readingTime(rawHtml)
     const body = splitIntoParagraphs(rawHtml)
@@ -106,7 +105,6 @@ async function loadDevo(url, period) {
 onMounted(async () => {
   try {
     const results = await Promise.all(FEEDS.map(f => loadDevo(f.url, f.period)))
-    console.log(results)
     devotionals.value = results
   } catch (e) {
     error.value = true

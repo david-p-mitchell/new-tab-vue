@@ -33,6 +33,10 @@ const FEED_SOURCES = [
   { url: 'https://www.evangelical-times.org/rss/',                 name: 'ET',            days: 5  },
   { url: 'https://www.crossway.org/articles/rss/',                 name: 'Crossway',      days: 3  },
   { url: 'https://www.ligonier.org/rss.xml',                       name: 'Ligonier',      days: 2  },
+  { url: 'http://rss.desiringgod.org/',                            name: 'Desiring God',  days: 3  },
+  { url: 'http://reformation21.org/feed/',                            name: 'Reformation 21',  days: 14  },
+  { url: 'http://banneroftruth.org/uk/feed/',                            name: 'Banner of Truth',  days: 60  },
+  { url: 'https://eardstapa.wordpress.com/feed/', name: 'Jeremy Walker Blog',       days: 3  },
 ]
 
 async function loadFeed(url, sourceName, days) {
@@ -41,7 +45,9 @@ async function loadFeed(url, sourceName, days) {
     const res = await fetch(api)
     if (!res.ok) throw new Error()
     const data = await res.json()
+    console.log(`Loaded feed: ${sourceName} (${data.items.length} items)`, data);
     if (!data.items) throw new Error()
+  
     
     return data.items.slice(0, 20).map(item => normalizePost(item, sourceName, days))
   } catch {
@@ -57,7 +63,6 @@ async function loadAllFeeds() {
     const allArrays = await Promise.all(
       FEED_SOURCES.map(f => loadFeed(f.url, f.name, f.days))
     )
-    //console.log('Raw feed items:', allArrays.flat())
     const processed = processPosts(allArrays.flat())
 
     saveSeenPosts(processed.map(p => p.link))

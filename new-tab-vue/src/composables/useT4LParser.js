@@ -2,7 +2,6 @@ import { readingTime } from './useReadingDurationCalculator.js';
 export function useT4LParser(item) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(item.content, "text/html");
-  console.log('Parsed HTML document:', doc);
 
   const root = doc.querySelector("body");
   if (!root) return null;
