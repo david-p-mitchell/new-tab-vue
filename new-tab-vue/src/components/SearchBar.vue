@@ -1,6 +1,7 @@
 <template>
   <div class="search-wrapper">
     <input
+      name="search"
       v-model="query"
       @input="fetchSuggestions"
       @keydown.enter="doSearch"
@@ -30,8 +31,10 @@ async function fetchSuggestions() {
   if (!query.value) { suggestions.value = []; return }
   try {
     const res = await fetch(
-      `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query.value)}`
-    )
+  `https://api.allorigins.win/raw?url=${encodeURIComponent(
+    `https://suggestqueries.google.com/complete/search?client=firefox&q=${query.value}`
+  )}`
+)
     const data = await res.json()
     suggestions.value = data[1] || []
   } catch (e) {
@@ -56,7 +59,7 @@ function doSearch() {
 .search-wrapper {
   position: relative;
   max-width: 600px;
-  margin: 0 auto 15px auto;
+  margin: 15px auto;
 }
 
 .search-input {
@@ -64,6 +67,7 @@ function doSearch() {
   padding: 10px 14px;
   font-size: 16px;
   font-family: 'Sora', sans-serif;
+  box-sizing: border-box;
   border-radius: 8px;
   border: none;
   outline: none;
@@ -77,15 +81,18 @@ function doSearch() {
 
 .suggestions {
   position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+
   background: #1e293b;
-  width: 100%;
-  border-radius: 0 0 8px 8px;
-  z-index: 10;
-  top: 42px;
-  max-height: 200px;
-  overflow-y: auto;
   border: 1px solid #334155;
   border-top: none;
+
+  border-radius: 0 0 8px 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 50;
 }
 
 .suggestion-item {
