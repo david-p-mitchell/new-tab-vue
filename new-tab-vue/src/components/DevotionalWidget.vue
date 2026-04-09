@@ -150,7 +150,9 @@ async function loadDevo(url, period) {
   else if(period === 'morning' || period === 'evening') {
     const spurgeonPost = useSpurgeonParser(item);
     if (spurgeonPost) {
-      devo = { bibleRef: spurgeonPost.bibleRef, bibleVerse: spurgeonPost.bibleVerse, period, img: spurgeonPost.img, title: spurgeonPost.title || '', body: spurgeonPost.content, link: item.link || url, duration: spurgeonPost.duration }
+      const newtitle = spurgeonPost.title.replace("Devotional for ", "").trim();
+      console.log('Parsed Spurgeon post:', { newtitle, ...spurgeonPost })
+      devo = { bibleRef: spurgeonPost.bibleRef, bibleVerse: spurgeonPost.bibleVerse, period, img: spurgeonPost.img, title: newtitle, body: spurgeonPost.content, link: item.link || url, duration: spurgeonPost.duration }
       cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
       return devo
     }
