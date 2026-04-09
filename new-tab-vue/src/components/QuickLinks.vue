@@ -21,7 +21,7 @@ const links = [
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 8px;
   justify-content: center;
   margin-bottom: 4px;
 }

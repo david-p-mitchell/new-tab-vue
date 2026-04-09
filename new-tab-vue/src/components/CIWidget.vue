@@ -162,7 +162,7 @@ function isSpeaking(article) {
   padding-right: 12px;
   border-right: 1px solid #1e293b;
   overflow-y: auto;
-  max-height: 190px;
+  max-height: 175px;
 }
 
 .news-list::-webkit-scrollbar { width: 4px; }

@@ -169,19 +169,12 @@ onMounted(async () => {
     devotionals.value = results
     selectedDevo.value = results[0] ?? null
 
-    /* ✅ attach scroll handler */
-    scrollBox.value?.addEventListener('wheel', handleWheel, { passive: false })
-
   } catch (e) {
     error.value = true
     console.error('Devotional feed error:', e)
   } finally {
     loading.value = false
   }
-})
-
-onBeforeUnmount(() => {
-  scrollBox.value?.removeEventListener('wheel', handleWheel)
 })
 
 function toggleSpeak(devo) {

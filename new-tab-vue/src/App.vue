@@ -1,8 +1,31 @@
 <template>
   <div class="container">
+    <div style="
+  display: grid;
+  grid-template-columns: auto auto 475px;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+">
+
+  <!-- Empty left space -->
+  <div></div>
+
+  <!-- Center Clock + Search -->
+  <div style="text-align: center;">
     <ClockWidget />
     <SearchBar />
     <QuickLinks />
+  </div>
+
+  <!-- Weather on right -->
+  <div style="justify-self: end;">
+    <WeatherWidget />
+  </div>
+
+</div>
+    
+    
     <div class="bottom-row">
       <FeedDashboard class="feeds-col" />
       <CIWidget />
@@ -10,6 +33,7 @@
     <div>
       <DevotionalWidget />
     </div>
+    
   </div>
 </template>
 
@@ -20,6 +44,7 @@ import QuickLinks from './components/QuickLinks.vue'
 import FeedDashboard from './components/FeedDashboard.vue'
 import DevotionalWidget from './components/DevotionalWidget.vue'
 import CIWidget from './components/CIWidget.vue'
+import WeatherWidget from './components/WeatherWidget.vue'
 
 
 
@@ -49,7 +74,7 @@ body {
 }
 
 .container {
-  padding: 24px;
+  padding: 12px 0;
   max-width: 1400px;
   margin: 0 auto;
 }
