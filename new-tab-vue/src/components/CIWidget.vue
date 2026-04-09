@@ -147,8 +147,8 @@ function isSpeaking(article) {
 /* ── Layout ── */
 .news-layout {
   gap: 0;
-  min-height: 200px;
-  max-height: 200px;
+  min-height: 175px;
+  max-height: 175px;
 }
 
 /* ── Left list ── */

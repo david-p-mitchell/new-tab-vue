@@ -5,7 +5,6 @@
   grid-template-columns: auto auto 475px;
   align-items: center;
   width: 100%;
-  margin-bottom: 20px;
 ">
 
   <!-- Empty left space -->
