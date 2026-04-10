@@ -93,7 +93,6 @@ onMounted(loadAllFeeds)
   flex-direction: column;
   max-width: 775px;
   min-width: 775px;
-  margin-top: 12px;
 }
 
 .dashboard h2 {
@@ -108,7 +107,6 @@ onMounted(loadAllFeeds)
   flex-direction: row;
   gap: 6px;
   scroll-behavior: smooth;
-  padding-bottom: 4px;
 }
 
 .feed-title {
