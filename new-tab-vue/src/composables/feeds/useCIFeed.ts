@@ -38,11 +38,6 @@ function cacheSet<T>(key: string, value: T, ttlMs: number) {
 }
 
 
-
-function stripImages(html: string): string {
-  return html.replace(/<img[^>]*>/gi, '')
-}
-
 export async function fetchCINews(): Promise<NewsArticle[]> {
   const cached = cacheGet<NewsArticle[]>(CACHE_KEY)
   if (cached) return cached
@@ -65,7 +60,7 @@ export async function fetchCINews(): Promise<NewsArticle[]> {
 
   const items: NewsArticle[] = data.items.map((item: any) => ({
     title: item.title || '',
-    pubDate: item.pubDate,
+    pubDate: item.pubDate || item.date,
     link: item.link || FEED_URL,
     source: "CI"
   }))

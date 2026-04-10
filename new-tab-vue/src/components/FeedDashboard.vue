@@ -45,7 +45,6 @@ async function loadFeed(url, sourceName, days) {
     const res = await fetch(api)
     if (!res.ok) throw new Error()
     const data = await res.json()
-    console.log(`Loaded feed: ${sourceName} (${data.items.length} items)`, data);
     if (!data.items) throw new Error()
   
     
