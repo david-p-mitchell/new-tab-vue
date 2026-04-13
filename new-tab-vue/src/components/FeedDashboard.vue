@@ -34,6 +34,7 @@ const { processPosts } = useFeedProcessor()
 const { saveSeenPosts, saveClickedPost, saveRemovedCard } = useFeedStorage()
 
 /** State */
+const allPosts = ref<RssPostItem[]>([])
 const posts = ref<RssPostItem[]>([])
 const loading = ref<boolean>(true)
 const error = ref<boolean>(false)
@@ -55,27 +56,20 @@ async function loadAllFeeds(): Promise<void> {
       fetchTgcFeed()
     ])
 
-    const allPosts: RssPostItem[] = []
+    const allPosts2: RssPostItem[] = []
 
     for (const r of results) {
-  if (r.status === 'fulfilled') {
-    const result = r.value.filter(post => post.genreType == 'generic')
+      if (r.status === 'fulfilled') {
+        const result = r.value.filter(post => post.genreType == 'generic')
 
-    allPosts.push(
-      ...result.map(item => ({
-        ...item,
-        type: 'generic', // or derive properly
-      }))
-    )
-  } else {
-    console.warn('Feed failed:', r.reason)
-  }
-}
-
-    const processed = processPosts(allPosts)
-
-    saveSeenPosts(processed.map(p => p.link))
-    posts.value = processed
+        allPosts2.push( ...result.map(item => ({...item, type: 'generic' }))
+        )
+      } else {
+        console.warn('Feed failed:', r.reason)
+      }
+    }
+    allPosts.value =allPosts2
+    processPosts2()
 
   } catch (e) {
     console.error(e)
@@ -83,6 +77,13 @@ async function loadAllFeeds(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+function processPosts2() {
+  const processed = processPosts(allPosts.value)
+
+    saveSeenPosts(processed.map(p => p.link))
+    posts.value = processed
 }
 
 /** Actions */

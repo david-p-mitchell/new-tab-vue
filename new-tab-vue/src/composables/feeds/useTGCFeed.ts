@@ -21,7 +21,11 @@ export async function fetchTgcFeed(): Promise<RSSFeedItem[]> {
 
       const result = data.items
                 .slice(0, 20)
-                .map(item  => normalizePost(item, sourceName, days))
+                .map(item  => { 
+                let np = normalizePost(item, sourceName, days)
+                const isPodcast = np.type.includes("Podcast")
+                return { ...np, genreType: isPodcast ? "Podcast" : np.genreType }
+              })
           
               setCachedFeed(cacheKey, result)
               return result

@@ -6,7 +6,6 @@ const cacheKey = "challiesFeed"
 export async function fetchChalliesFeed(): Promise<RSSFeedItem[]> {
 
   const cached = getCachedFeed(cacheKey)
-  console.log('Cached Challies Feed:', cached)
   if (cached) return cached
 
   const url = 'https://www.challies.com/feed/'

@@ -20,7 +20,11 @@ export async function fetchCrosswayFeed(): Promise<RSSFeedItem[]> {
 
     const result = data.items
               .slice(0, 20)
-              .map(item  => normalizePost(item, sourceName, days))
+              .map(item  => { 
+                let np = normalizePost(item, sourceName, days)
+                const isPodcast = item.title.startsWith("Podcast:")
+                return { ...np, genreType: isPodcast ? "Podcast" : np.genreType }
+              })
         
             setCachedFeed(cacheKey, result)
             return result

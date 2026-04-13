@@ -5,7 +5,6 @@ import { getCachedFeed,setCachedFeed } from '@/composables/useCache'
 const cacheKey = "challiesImageFeed"
 export async function fetchChalliesImageFeed(): Promise<RssItem[]> {
   const cached = getCachedFeed(cacheKey)
-  console.log('Cached Challies Image Feed:', cached)
   if (cached) return cached
 
   const FEEDS = [
@@ -42,8 +41,6 @@ export async function fetchChalliesImageFeed(): Promise<RssItem[]> {
 
     for (const feedUrl of FEEDS) {
       const api = `https://api.rss2json.com/v1/api.json?api_key=${apiKey}&count=1000&rss_url=${encodeURIComponent(feedUrl)}`
-
-      console.log("Fetching:", feedUrl)
 
       const res = await fetch(api)
       if (!res.ok) continue

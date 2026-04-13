@@ -32,7 +32,8 @@
     <div>
       <div style="display: flex; ">
       <DevotionalWidget />
-      <img style="margin:2px;aspect-ratio: calc(); max-height:350px;" :src="challiesImage" />
+      <img v-if="!imageFailed" :src="challiesImage" @error="imageFailed = true" />
+      <YoutubeShortsWidget :videos="ytClips" />
       </div>
     </div>
 
@@ -50,13 +51,17 @@ import WeatherWidget from './components/WeatherWidget.vue'
 import { fetchChalliesImageFeed } from './composables/feeds/challies/useChalliesImageFeed'
 import { fetchEvangelicalTimesFeed } from './composables/feeds/useETFeed'
 import { fetchCINews } from './composables/feeds/useCIFeed'
+import { useYoutubeFeed, YoutubeVideo } from './composables/feeds/Youtube/useDesiringGodClipFeed'
 import { ref, onMounted } from 'vue'
 import type { NewsArticle } from './types/newsArticle'
 import { RssItem } from './types/rssFeedItem'
+import YoutubeShortsWidget from './components/YoutubeShortsWidget.vue'
 
 const newsItems = ref<NewsArticle[]>([])
 const challiesImages = ref<RssItem[]>([])
 const challiesImage = ref<string>('')
+const imageFailed = ref<boolean>(false)
+  const ytClips = ref<YoutubeVideo[] | null>(null)
 
 onMounted(async () => {
   const etItems = await fetchEvangelicalTimesFeed()
@@ -65,14 +70,18 @@ onMounted(async () => {
   
   const challies = await fetchChalliesImageFeed()
   challiesImages.value = challies
-  console.log('Challies Images:', challiesImages.value)
   const chosenImage = challiesImages.value[Math.floor(Math.random() * challiesImages.value.length)]
-  console.log('Chosen Image:', chosenImage)
-  const  newUrl = chosenImage.thumbnail!
+  const newUrl = chosenImage.thumbnail!
   .replace("/Th/", "/M/")
   .replace("-Th.jpg", "-M.jpg");
   challiesImage.value = newUrl
   
+})
+onMounted(async () => {
+  const desiringGodClips = await useYoutubeFeed().fetchFeed("PLAcB0f-21Xj0S8NbP6WFTXaAl9Cl9eQG3");
+  const jeremyWalkerClips = await useYoutubeFeed().fetchFeed("PLydzd6kZnPWcLX79S68ZxKyuHF9naWwkN")
+  const eastbourneGBCClips = await useYoutubeFeed().fetchFeed("PL6lnGA_aT9oQNEdha98cB4vRqAUi5pDB_")
+  ytClips.value = [...desiringGodClips, ...jeremyWalkerClips, ...eastbourneGBCClips];
 })
 </script>
 

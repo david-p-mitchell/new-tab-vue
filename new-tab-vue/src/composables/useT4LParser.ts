@@ -87,11 +87,12 @@ export function useT4LSpurgeonParser(item: RssItem): ParsedSpurgeonDevotional | 
 
   root.querySelectorAll("p").forEach(p => {
     if (!firstP && p.textContent?.trim() !== "") {
-      firstP = p;
+      firstP = p as HTMLParagraphElement;
     }
   });
 
-  const bibleVerse = firstP?.textContent?.trim() || "";
+  const firstPSnapshot = firstP as HTMLParagraphElement | null;
+  const bibleVerse = firstPSnapshot?.textContent?.trim() ?? "";
 
   // 3️⃣ Copyright
   const copyright =
@@ -108,7 +109,7 @@ export function useT4LSpurgeonParser(item: RssItem): ParsedSpurgeonDevotional | 
   }
 
   clone.querySelector("strong")?.remove();
-  if (firstP) firstP.remove();
+  if (firstPSnapshot) firstPSnapshot.remove();
   clone.querySelector(".devo_copyright")?.remove();
   clone.querySelectorAll("img").forEach(img => img.remove());
   clone.querySelectorAll("br").forEach(br => br.remove());
