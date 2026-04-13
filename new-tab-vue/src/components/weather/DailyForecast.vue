@@ -32,12 +32,21 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  daily: { type: Array, required: true },
-  convertTemp: { type: Function, required: true },
-  dayFillStyle: { type: Function, required: true }
-})
+<script setup lang="ts">
+interface DailyItem {
+  label: string;
+  icon: string;
+  condition: string;
+  loC: number;
+  hiC: number;
+  precip: number;
+}
+
+defineProps<{
+  daily: DailyItem[];
+  convertTemp: (c: number) => number | string;
+  dayFillStyle: (d: DailyItem) => Record<string, string>;
+}>();
 </script>
 
 <style scoped>

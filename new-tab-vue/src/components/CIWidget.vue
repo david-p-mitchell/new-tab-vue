@@ -50,14 +50,14 @@ import type { RssPostItem } from '../types/rssFeedItem'
 import type { NewsArticle } from '../types/newsArticle'
 
 const props = defineProps<{
-  articles: RssPostItem[]
+  articles: NewsArticle[]
 }>()
 
 const loading = ref(false)
 const error = ref(false)
 
 let currentUtterance: SpeechSynthesisUtterance | null = null
-const speakingArticle = ref<RssPostItem | null>(null)
+const speakingArticle = ref<NewsArticle | null>(null)
 
   const sortedArticles = computed(() => {
   return [...props.articles].sort((a, b) => {

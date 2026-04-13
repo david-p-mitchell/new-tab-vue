@@ -21,10 +21,19 @@
         </div>
 </template>
 
-<script setup>
-defineProps({
-  hourly: { type: Array, required: true }
-})
+<script setup lang="ts">
+interface HourlyItem {
+  time: string;
+  isNow: boolean;
+  tempC: number;
+  icon: string;
+  precip: number;
+  barPct: number;
+}
+
+defineProps<{
+  hourly: HourlyItem[];
+}>();
 </script>
 
 <style scoped>

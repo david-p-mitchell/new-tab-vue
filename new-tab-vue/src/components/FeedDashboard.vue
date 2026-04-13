@@ -4,7 +4,7 @@
     <p v-else-if="error" class="feed-error">Unable to load feeds</p>
     <div v-else class="card-grid">
       <FeedCard
-        v-for="post in posts"
+        v-for="post  in posts"
         :key="post.link"
         :post="post"
         @remove="removePost"
@@ -14,75 +14,88 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import FeedCard from './FeedCard.vue'
-import { useFeedProcessor } from '../composables/useFeedProcessor.js'
-import { useFeedStorage } from '../composables/useFeedStorage.js'
+import { useFeedProcessor } from '../composables/useFeedProcessor'
+import { useFeedStorage } from '../composables/useFeedStorage'
+import type { RSSFeedItem, RssPostItem } from '@/types/rssFeedItem'
 
-const { normalizePost, processPosts } = useFeedProcessor()
+import { fetchBannerOfTruthFeed } from '@/composables/feeds/useBannerOfTruthFeed'
+import { fetchChalliesFeed } from '@/composables/feeds/challies/useChalliesMainFeed'
+import { fetchCrosswayFeed } from '@/composables/feeds/useCrosswayFeed'
+import { fetchDesiringGodFeed } from '@/composables/feeds/useDesiringGodFeed'
+import { fetchEvangelicalTimesFeed } from '@/composables/feeds/useETFeed'
+import { fetchLigonierFeed } from '@/composables/feeds/useLigionierFeed'
+import { fetchReformation21Feed } from '@/composables/feeds/useRef21Feed'
+import { fetchTgcFeed } from '@/composables/feeds/useTGCFeed'
+
+const { processPosts } = useFeedProcessor()
 const { saveSeenPosts, saveClickedPost, saveRemovedCard } = useFeedStorage()
 
-const posts = ref([])
-const loading = ref(true)
-const error = ref(false)
+/** State */
+const posts = ref<RssPostItem[]>([])
+const loading = ref<boolean>(true)
+const error = ref<boolean>(false)
 
-const FEED_SOURCES = [
-  { url: 'https://www.challies.com/feed/',                          name: 'Challies',      days: 3  },
-  { url: 'https://www.thegospelcoalition.org/feed/',               name: 'TGC',           days: 3  },
-  { url: 'https://www.evangelical-times.org/rss/',                 name: 'ET',            days: 5  },
-  { url: 'https://www.crossway.org/articles/rss/',                 name: 'Crossway',      days: 3  },
-  { url: 'https://www.ligonier.org/rss.xml',                       name: 'Ligonier',      days: 2  },
-  { url: 'http://rss.desiringgod.org/',                            name: 'Desiring God',  days: 3  },
-  { url: 'http://reformation21.org/feed/',                            name: 'Reformation 21',  days: 14  },
-  { url: 'http://banneroftruth.org/uk/feed/',                            name: 'Banner of Truth',  days: 60  },
-  { url: 'https://eardstapa.wordpress.com/feed/', name: 'Jeremy Walker Blog',       days: 3  },
-]
+/** Load all feeds (IMPORT-BASED VERSION) */
+async function loadAllFeeds(): Promise<void> {
+  loading.value = true
+  error.value = false
 
-async function loadFeed(url, sourceName, days) {
   try {
-    const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`
-    const res = await fetch(api)
-    if (!res.ok) throw new Error()
-    const data = await res.json()
-    if (!data.items) throw new Error()
-  
-    
-    return data.items.slice(0, 20).map(item => normalizePost(item, sourceName, days))
-  } catch {
-    console.warn(`Feed failed: ${url}, skipping.`)
-    return []
+    const results = await Promise.allSettled([
+      fetchBannerOfTruthFeed(),
+      fetchChalliesFeed(),
+      fetchCrosswayFeed(),
+      fetchDesiringGodFeed(),
+      fetchEvangelicalTimesFeed(),
+      fetchLigonierFeed(),
+      fetchReformation21Feed(),
+      fetchTgcFeed()
+    ])
+
+    const allPosts: RssPostItem[] = []
+
+    for (const r of results) {
+  if (r.status === 'fulfilled') {
+    const result = r.value.filter(post => post.genreType == 'generic')
+
+    allPosts.push(
+      ...result.map(item => ({
+        ...item,
+        type: 'generic', // or derive properly
+      }))
+    )
+  } else {
+    console.warn('Feed failed:', r.reason)
   }
 }
 
-async function loadAllFeeds() {
-  loading.value = true
-  error.value = false
-  try {
-    const allArrays = await Promise.all(
-      FEED_SOURCES.map(f => loadFeed(f.url, f.name, f.days))
-    )
-    const processed = processPosts(allArrays.flat())
+    const processed = processPosts(allPosts)
 
     saveSeenPosts(processed.map(p => p.link))
     posts.value = processed
+
   } catch (e) {
-    error.value = true
     console.error(e)
+    error.value = true
   } finally {
     loading.value = false
   }
 }
 
-function removePost(link) {
+/** Actions */
+function removePost(link: string): void {
   saveRemovedCard(link)
   posts.value = posts.value.filter(p => p.link !== link)
 }
 
-function markClicked(link) {
+function markClicked(link: string): void {
   saveClickedPost(link)
 }
 
+/** Lifecycle */
 onMounted(loadAllFeeds)
 </script>
 
@@ -98,7 +111,6 @@ onMounted(loadAllFeeds)
   font-size: 1rem;
   font-weight: 600;
   color: #94a3b8;
-  
 }
 
 .card-grid {
@@ -114,6 +126,7 @@ onMounted(loadAllFeeds)
   color: #94a3b8;
   margin-bottom: 4px;
 }
+
 .feed-status {
   color: #94a3b8;
   font-style: italic;

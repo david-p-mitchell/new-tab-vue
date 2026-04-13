@@ -21,37 +21,47 @@
   </div>
 </template>
 
-<script setup>
+✅ Converted to strong TypeScript
+<script setup lang="ts">
 import { ref } from 'vue'
 
-const query = ref('')
-const suggestions = ref([])
+const query = ref<string>('')
+const suggestions = ref<string[]>([])
 
-async function fetchSuggestions() {
-  if (!query.value) { suggestions.value = []; return }
+async function fetchSuggestions(): Promise<void> {
+  if (!query.value) {
+    suggestions.value = []
+    return
+  }
+
   try {
     const res = await fetch(
-  `https://api.allorigins.win/raw?url=${encodeURIComponent(
-    `https://suggestqueries.google.com/complete/search?client=firefox&q=${query.value}`
-  )}`
-)
-    const data = await res.json()
-    suggestions.value = data[1] || []
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(
+        `https://suggestqueries.google.com/complete/search?client=firefox&q=${query.value}`
+      )}`
+    )
+
+    const data: unknown = await res.json()
+
+    // Google suggest format: [query, string[]]
+    const parsed = data as [string, string[]]
+
+    suggestions.value = parsed[1] || []
   } catch (e) {
     console.error('Suggest error:', e)
   }
 }
 
-function selectSuggestion(s) {
+function selectSuggestion(s: string): void {
   query.value = s
   suggestions.value = []
   window.location.href = `https://www.google.com/search?q=${encodeURIComponent(s)}`
 }
 
-function doSearch() {
-  if (query.value) {
-    window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query.value)}`
-  }
+function doSearch(): void {
+  if (!query.value) return
+
+  window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query.value)}`
 }
 </script>
 

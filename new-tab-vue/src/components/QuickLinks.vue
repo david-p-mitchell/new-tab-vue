@@ -1,19 +1,31 @@
 <template>
   <div class="links">
-    <a v-for="link in links" :key="link.href" :href="link.href" target="_blank">
+    <a
+      v-for="link in links"
+      :key="link.href"
+      :href="link.href"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       <i :class="link.icon"></i> {{ link.label }}
     </a>
   </div>
 </template>
 
-<script setup>
-const links = [
-  { href: 'https://chatgpt.com',                        icon: 'fa-solid fa-robot',        label: 'Chat GPT' },
-  { href: 'https://enonbaptistchurch.github.io',         icon: 'fa-brands fa-github',      label: 'Enon Tools' },
-  { href: 'https://github.com',                          icon: 'fa-brands fa-github',      label: 'GitHub' },
-  { href: 'https://gmail.com',                           icon: 'fa-solid fa-envelope',     label: 'Email' },
-  { href: 'https://calendar.google.com',                 icon: 'fa-solid fa-calendar',     label: 'Calendar' },
-  { href: 'https://claude.ai',                           icon: 'fa-solid fa-wand-sparkles', label: 'Claude AI' },
+<script setup lang="ts">
+type LinkItem = {
+  href: string
+  icon: string
+  label: string
+}
+
+const links: LinkItem[] = [
+  { href: 'https://chatgpt.com', icon: 'fa-solid fa-robot', label: 'Chat GPT' },
+  { href: 'https://enonbaptistchurch.github.io', icon: 'fa-brands fa-github', label: 'Enon Tools' },
+  { href: 'https://github.com', icon: 'fa-brands fa-github', label: 'GitHub' },
+  { href: 'https://gmail.com', icon: 'fa-solid fa-envelope', label: 'Email' },
+  { href: 'https://calendar.google.com', icon: 'fa-solid fa-calendar', label: 'Calendar' },
+  { href: 'https://claude.ai', icon: 'fa-solid fa-wand-sparkles', label: 'Claude AI' },
 ]
 </script>
 

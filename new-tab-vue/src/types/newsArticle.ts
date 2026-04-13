@@ -6,7 +6,7 @@ export interface NewsArticle {
   thumbnail?: string
   duration?: number
   categories?: string[]
-  type: string
+  genreType: string
   content?: string
   description?: string
   source: string

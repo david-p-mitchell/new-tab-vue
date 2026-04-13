@@ -1,4 +1,4 @@
-```vue
+
 <template>
   <div class="devotional">
 
@@ -55,26 +55,64 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useT4LParser, useT4LSpurgeonParser } from '../composables/useT4LParser.js'
 import { useSpurgeonParser } from '../composables/useSpurgeonParser.js'
 import { useMediaGratiaeDevotionProcessor } from '../composables/useMediaGratiaeDevotionProcessor.js'
+import { DevotionalRssItem, RssItem } from '@/types/rssFeedItem.js'
+
+/* =========================
+   TYPES
+========================= */
+
+type Period =
+  | 'daily'
+  | 'Spurgeon'
+  | 'morning'
+  | 'evening'
+  | 'Media Gratiae'
+  | string
+
+interface Feed {
+  url: string
+  period: Period
+}
+
+interface Devotional {
+  bibleRef: string
+  bibleVerse: string
+  period: Period
+  pubDate?: string
+  img?: string
+  title: string
+  body: string
+  link: string
+  duration?: number
+}
+
+/* =========================
+   STATE
+========================= */
 
 const loading = ref(true)
 const error = ref(false)
-const devotionals = ref([])
-const selectedDevo = ref(null)
 
-let currentUtterance = null
-const speakingDevo = ref(null)
+const devotionals = ref<Devotional[]>([])
+const selectedDevo = ref<Devotional | null>(null)
 
-/* ✅ NEW: scroll control */
-const scrollBox = ref(null)
+let currentUtterance: SpeechSynthesisUtterance | null = null
+const speakingDevo = ref<Devotional | null>(null)
+
+/* =========================
+   SCROLL
+========================= */
+
+const scrollBox = ref<HTMLElement | null>(null)
 const SCROLL_SPEED = 0.00005
 
-const handleWheel = (e) => {
-  // allow natural trackpad scrolling
+const handleWheel = (e: WheelEvent) => {
+  if (!scrollBox.value) return
   if (Math.abs(e.deltaY) < 10) return
 
   e.preventDefault()
@@ -83,10 +121,11 @@ const handleWheel = (e) => {
   })
 }
 
-const now = new Date();
+/* =========================
+   FEEDS
+========================= */
 
-const formatted = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}/`;
-const FEEDS = [
+const FEEDS: Feed[] = [
   { url: 'https://feeds.feedburner.com/alistairbeggdailydevotional', period: 'daily' },
   { url: 'https://feeds.feedburner.com/truthforlifedailydevotional', period: 'Spurgeon' },
   { url: 'https://feeds.feedburner.com/hl-devos-spurgeon-morning', period: 'morning' },
@@ -94,112 +133,230 @@ const FEEDS = [
   { url: 'https://www.mediagratiae.org/blog?format=rss', period: 'Media Gratiae' }
 ]
 
-function cacheGet(key) {
+function cacheGet<T>(key: string): T | null {
   const cached = localStorage.getItem(key)
   if (!cached) return null
-  const { value, expiry } = JSON.parse(cached)
-  if (Date.now() > expiry) { localStorage.removeItem(key); return null }
-  return value
+
+  const parsed = JSON.parse(cached) as { value: T; expiry: number }
+
+  if (Date.now() > parsed.expiry) {
+    localStorage.removeItem(key)
+    return null
+  }
+
+  return parsed.value
 }
 
-function cacheSet(key, value, ttlMs) {
-  localStorage.setItem(key, JSON.stringify({ value, expiry: Date.now() + ttlMs }))
+function cacheSet<T>(key: string, value: T, ttlMs: number) {
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      value,
+      expiry: Date.now() + ttlMs
+    })
+  )
 }
 
-async function loadDevo(url, period) {
+/* =========================
+   NORMALISE RSS (IMPORTANT FIX)
+========================= */
+
+function normalizeRssItem(item: RssItem): Required<DevotionalRssItem> {
+  return {
+    title: item.title ?? '',
+    link: item.link ?? '',
+    description: item.description ?? '',
+    content: item.content ?? '',
+    pubDate: item.pubDate ?? ''
+  }
+}
+
+/* =========================
+   LOAD DEVOTIONAL
+========================= */
+
+async function loadDevo(url: string, period: Period): Promise<Devotional> {
   const cacheKey = `devos_${period}`
-  let devo = cacheGet(cacheKey)
+  const cached = cacheGet<Devotional>(cacheKey)
+  if (cached) return cached
 
   const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`
   const res = await fetch(api)
   if (!res.ok) throw new Error('Feed request failed')
-  const data = await res.json()
-  if(period === 'Media Gratiae') {
-    const recentItems = data.items.filter(item => {
-      return item.categories?.[0] !== 'The Whole Counsel' 
-    })
-    if (recentItems.length === 0) throw new Error('No recent articles found')
-    const item = recentItems[0]
-      const mgPost = useMediaGratiaeDevotionProcessor(item);
-      if (mgPost) {
-      devo = { bibleRef: mgPost.bibleRef, bibleVerse: mgPost.bibleVerse, period, pubDate: mgPost.pubDate, img: mgPost.img, title: mgPost.title || '', body: mgPost.content, link: item.link || url, duration: mgPost.duration }
-      cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
-      return devo
-      }
-  }
-  const item = data.items?.[0]
-  if (!item) throw new Error('No devotional found')
 
-  if(item.link?.includes('https://www.truthforlife.org/devotionals/alistair-begg/')) {
-    
-    const t4lPost = useT4LParser(item);
+  const data = await res.json()
+  const rawItem = data.items?.[0]
+  if (!rawItem) throw new Error('No devotional found')
+
+  const item: RssItem = normalizeRssItem(rawItem)
+
+  let devo: Devotional | null = null
+  if (period === 'Media Gratiae') {
+    const filtered = data.items.filter(
+      (i: RssItem) => i.categories?.[0] !== 'The Whole Counsel'
+    )
+
+    const first = filtered[0]
+    if (!first) throw new Error('No recent articles found')
+
+    const mgPost = useMediaGratiaeDevotionProcessor(normalizeRssItem(first))
+
+    if (mgPost) {
+      devo = {
+        bibleRef: mgPost.bibleRef,
+        bibleVerse: mgPost.bibleVerse,
+        period,
+        pubDate: mgPost.pubDate ?? undefined,
+        img: mgPost.img ?? undefined,
+        title: mgPost.title || '',
+        body: mgPost.content,
+        link: first.link || url,
+        duration: mgPost.duration ?? undefined
+      }
+    }
+  }
+
+  /* =========================
+     TRUTH FOR LIFE
+  ========================= */
+  else if (item.link?.includes('truthforlife.org/devotionals/alistair-begg')) {
+
+    const t4lPost = useT4LParser(item)
+
     if (t4lPost) {
-      devo = { bibleRef: t4lPost.bibleRef, bibleVerse: t4lPost.bibleVerse, period, img: t4lPost.img, title: t4lPost.title || '', body: t4lPost.content, link: item.link || url, duration: t4lPost.duration }
-      cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
-      return devo
+      devo = {
+        bibleRef: t4lPost.bibleRef,
+        bibleVerse: t4lPost.bibleVerse,
+        period,
+        img: t4lPost.img ?? undefined,
+        title: t4lPost.title || '',
+        body: t4lPost.content,
+        link: item.link,
+        duration: t4lPost.duration ?? undefined
+      }
     }
   }
-  else if(period.includes('Spurgeon')) {
-    const t4lspurgeonPost = useT4LSpurgeonParser(item);
-    if (t4lspurgeonPost) {
-      devo = { bibleRef: t4lspurgeonPost.bibleRef, bibleVerse: t4lspurgeonPost.bibleVerse, period, img: t4lspurgeonPost.img, title: t4lspurgeonPost.title || '', body: t4lspurgeonPost.content, link: item.link || url, duration: t4lspurgeonPost.duration }
-      cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
-      return devo
+
+  /* =========================
+     SPURGEON FEED
+  ========================= */
+  else if (period.includes('Spurgeon')) {
+    const parsed = useT4LSpurgeonParser(item)
+
+    if (parsed) {
+      devo = {
+        bibleRef: parsed.bibleRef,
+        bibleVerse: parsed.bibleVerse,
+        period,
+        img: parsed.img ?? undefined,
+        title: parsed.title || '',
+        body: parsed.content,
+        link: item.link,
+        duration: parsed.duration ?? undefined
+      }
     }
   }
-  else if(period === 'morning' || period === 'evening') {
-    const spurgeonPost = useSpurgeonParser(item);
+
+  /* =========================
+     MORNING / EVENING SPURGEON
+  ========================= */
+  else if (period === 'morning' || period === 'evening') {
+    const spurgeonPost = useSpurgeonParser({ title: item.title ?? '', content: item.content ?? ''})
+
     if (spurgeonPost) {
-      const newtitle = spurgeonPost.title.replace("Devotional for ", "").trim();
-      console.log('Parsed Spurgeon post:', { newtitle, ...spurgeonPost })
-      devo = { bibleRef: spurgeonPost.bibleRef, bibleVerse: spurgeonPost.bibleVerse, period, img: spurgeonPost.img, title: newtitle, body: spurgeonPost.content, link: item.link || url, duration: spurgeonPost.duration }
-      cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
-      return devo
+      const title = spurgeonPost.title.replace('Devotional for ', '').trim()
+
+      devo = {
+        bibleRef: spurgeonPost.bibleRef,
+        bibleVerse: spurgeonPost.bibleVerse,
+        period,
+        title,
+        body: spurgeonPost.content,
+        link: item.link,
+        duration: spurgeonPost.duration ?? undefined
+      }
     }
   }
-  else{
-    
-    devo = { bibleRef: '', bibleVerse: '', period, img: '', title: item.title || '', body: item.description || '', link: item.link || url, duration: null }
-    cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
-    return devo
+
+  /* =========================
+     FALLBACK
+  ========================= */
+  else {
+    devo = {
+      bibleRef: '',
+      bibleVerse: '',
+      period,
+      img: undefined,
+      title: item.title ?? '',
+      body: item.content || item.description || '',
+      link: item.link,
+      duration: undefined
+    }
   }
+
+  if (!devo) throw new Error('Failed to parse devotional')
+
+  cacheSet(cacheKey, devo, 24 * 60 * 60 * 1000)
+  return devo
 }
+
+/* =========================
+   LIFECYCLE
+========================= */
 
 onMounted(async () => {
   try {
-    const results = await Promise.all(FEEDS.map(f => loadDevo(f.url, f.period)))
+    const results = await Promise.all(
+      FEEDS.map(f => loadDevo(f.url, f.period))
+    )
+
     devotionals.value = results
     selectedDevo.value = results[0] ?? null
-
   } catch (e) {
     error.value = true
-    console.error('Devotional feed error:', e)
+    console.error(e)
   } finally {
     loading.value = false
   }
 })
 
-function toggleSpeak(devo) {
+/* =========================
+   SPEECH
+========================= */
+
+function toggleSpeak(devo: Devotional | null) {
+  if (!devo) return
+
   if (speakingDevo.value === devo) {
-    speechSynthesis.paused ? speechSynthesis.resume() : speechSynthesis.pause()
-  } else {
-    speechSynthesis.cancel()
-    speakingDevo.value = devo
-    const text = devo.body.replace(/<[^>]*>/g, ' ')
-    currentUtterance = new SpeechSynthesisUtterance(text)
-    currentUtterance.rate = 1
-    currentUtterance.pitch = 1
-    currentUtterance.lang = 'en-US'
-    const voices = speechSynthesis.getVoices()
-    const maleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))
-    if (maleVoice) currentUtterance.voice = maleVoice
-    currentUtterance.onend = () => { speakingDevo.value = null }
-    speechSynthesis.speak(currentUtterance)
+    speechSynthesis.paused
+      ? speechSynthesis.resume()
+      : speechSynthesis.pause()
+    return
   }
+
+  speechSynthesis.cancel()
+  speakingDevo.value = devo
+
+  const text = devo.body.replace(/<[^>]*>/g, ' ')
+
+  currentUtterance = new SpeechSynthesisUtterance(text)
+  currentUtterance.rate = 1
+  currentUtterance.pitch = 1
+  currentUtterance.lang = 'en-US'
+
+  currentUtterance.onend = () => {
+    speakingDevo.value = null
+  }
+
+  speechSynthesis.speak(currentUtterance)
 }
 
-function isSpeaking(devo) {
-  return speakingDevo.value === devo && (speechSynthesis.speaking || speechSynthesis.paused)
+function isSpeaking(devo: Devotional | null): boolean {
+  return (
+    !!devo &&
+    speakingDevo.value === devo &&
+    (speechSynthesis.speaking || speechSynthesis.paused)
+  )
 }
 </script>
 

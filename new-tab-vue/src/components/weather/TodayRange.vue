@@ -9,13 +9,15 @@
           </div>
 </template>
 
-<script setup>
-defineProps({
-  todayHi: { type: String, required: true },
-  todayLo: { type: String, required: true },
-  hilowStyle: { type: Object, required: true},
-  hilowDotPos: { type: String, required: true }
-})
+<script setup lang="ts">
+import type { CSSProperties } from 'vue';
+
+defineProps<{
+  todayHi: string | number;
+  todayLo: string | number;
+  hilowStyle: CSSProperties;
+  hilowDotPos: string;
+}>();
 </script>
 
 <style scoped>

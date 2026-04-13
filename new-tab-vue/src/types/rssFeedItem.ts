@@ -2,6 +2,10 @@ import { NewsArticle } from "./newsArticle";
 
 export type RSSFeedItem = NewsArticle | RssPostItem
 
+export interface RssResponse {
+  items: RssItem[]
+}
+
 export interface RssPostItem {
   title: string
   link: string
@@ -12,6 +16,7 @@ export interface RssPostItem {
   thumbnail?: string
   source: string
   author?: string
+  genreType: string
   type: string
   sourceDays?: number
   extraInfo?: string
@@ -27,9 +32,18 @@ export interface RssItem {
   description?: string
   thumbnail?: string
   categories?: string[] | string | undefined
+  author?: string
 
   // loose RSS extensions (needed in real feeds)
   media?: any
   enclosure?: { link?: string }
+}
+
+export interface DevotionalRssItem {
+  title: string
+  link: string
+  pubDate?: string
+  content?: string
+  description?: string
 }
 

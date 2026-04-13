@@ -2,7 +2,7 @@
   <div class="clock">{{ time }}</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const time = ref('')
@@ -15,7 +15,7 @@ function updateClock() {
   })
 }
 
-let interval
+let interval :number
 onMounted(() => {
   updateClock()
   interval = setInterval(updateClock, 1000)

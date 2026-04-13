@@ -1,50 +1,14 @@
-import { readingTime } from '../useReadingDurationCalculator'
 import { NewsArticle } from '../../types/newsArticle'
 
 const FEED_URL = 'https://www.christian.org.uk/news/england-wales/rssfeed/'
-const CACHE_KEY = 'ci_news_feed'
-const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
-
-function cacheGet<T>(key: string): T | null {
-  try {
-    const cached = localStorage.getItem(key)
-    if (!cached) return null
-
-    const { value, expiry } = JSON.parse(cached)
-
-    if (Date.now() > expiry) {
-      localStorage.removeItem(key)
-      return null
-    }
-
-    return value
-  } catch {
-    return null
-  }
-}
-
-function cacheSet<T>(key: string, value: T, ttlMs: number) {
-  try {
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        value,
-        expiry: Date.now() + ttlMs
-      })
-    )
-  } catch {
-    // silently fail
-  }
-}
-
+import { getCachedFeed, setCachedFeed } from '../useCache'
+const cacheKey= "CIFeed"
 
 export async function fetchCINews(): Promise<NewsArticle[]> {
-  const cached = cacheGet<NewsArticle[]>(CACHE_KEY)
-  if (cached) return cached
+  const cached = getCachedFeed(cacheKey)
+        if (cached) return cached
 
-  const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(
-    FEED_URL
-  )}`
+  const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(FEED_URL)}`
 
   const res = await fetch(api)
 
@@ -65,7 +29,7 @@ export async function fetchCINews(): Promise<NewsArticle[]> {
     source: "CI"
   }))
 
-  cacheSet(CACHE_KEY, items, CACHE_TTL)
+  setCachedFeed(cacheKey, items)
 
   return items
 }

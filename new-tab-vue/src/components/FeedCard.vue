@@ -1,26 +1,61 @@
 <template>
   <div class="card">
-    <button class="remove-btn" @click.prevent="$emit('remove', post.link)">&times;</button>
-    <a :href="post.link" target="_blank" @click="$emit('clicked', post.link)">
-      <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title" class="card-img" />
+    <button class="remove-btn" @click.prevent="emit('remove', post.link)">
+      &times;
+    </button>
+
+    <a
+      :href="post.link"
+      target="_blank"
+      rel="noopener noreferrer"
+      @click="emit('clicked', post.link)"
+    >
+      <img
+        v-if="post.thumbnail"
+        :src="post.thumbnail"
+        :alt="post.title"
+        class="card-img"
+      />
+
       <h3>{{ post.title }}</h3>
-      <p class="source">{{ post.source }}{{ post.type ? ' - ' + post.type : '' }}</p>
-      <p>{{ post.author ? post.author + ' - ' : '' }}{{ ukDate }}</p>
+
+      <p class="source">
+        {{ post.source }}{{ post.categories?.length ? ' - ' + post.categories[0] : '' }}
+      </p>
+
+      <p>
+        {{ post.author ? post.author + ' - ' : '' }}{{ ukDate }}
+      </p>
     </a>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
+import type { RssPostItem } from '@/types/rssFeedItem'
+/** Props */
+const props = defineProps<{
+  post: RssPostItem
+}>()
 
-const props = defineProps({ post: Object })
-defineEmits(['remove', 'clicked'])
+/** Emits */
+const emit = defineEmits<{
+  (e: 'remove', link: string): void
+  (e: 'clicked', link: string): void
+}>()
 
-const ukDate = computed(() => {
+/** Computed date */
+const ukDate = computed<string>(() => {
+  if(props.post) {
   const date = new Date(props.post.pubDate)
+
   return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'short', day: '2-digit', month: 'short'
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
   }).format(date)
+}
+return ''
 })
 </script>
 
@@ -33,7 +68,7 @@ const ukDate = computed(() => {
   color: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s ease;
   line-height: 1.4;
 }

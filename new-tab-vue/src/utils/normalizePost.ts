@@ -1,4 +1,4 @@
-import type { RSSFeedItem, RssItem, RssPostItem } from '../src/types/rssFeedItem'
+import type { RssItem, RssPostItem } from '../types/rssFeedItem'
 
 export function normalizePost(item: RssItem, sourceName: string, sourceDays: number): RssPostItem {
   const html = item.content || item.description || ''
@@ -28,7 +28,8 @@ export function normalizePost(item: RssItem, sourceName: string, sourceDays: num
     thumbnail: img,
     source: sourceName,
     author: (item as any).author,
-    type: looksLikeNews ? 'news' : 'generic',
+    genreType: looksLikeNews ? 'news' : 'generic',
+    type: categories && categories.length> 0? categories[0] : '',
     sourceDays,
     extraInfo: '',
     categories,

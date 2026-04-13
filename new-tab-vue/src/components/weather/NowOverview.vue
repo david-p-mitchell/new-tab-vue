@@ -6,17 +6,17 @@
             </div>
             <p class="wd-condition">{{ condition }}</p>
 </template>
-<script setup>
-defineProps({       
-    mainIcon: String,
-    temp: Number,
-    unit: String,
-    condition: String
-})
+<script setup lang="ts">
+defineProps<{
+  mainIcon: string;
+  temp: number | string;
+  unit: string;
+  condition: string;
+}>();
 </script>
 
 <style scoped>
-.wd-hero-icon { opacity: 0.92; flex-shrink: 0; }
+.wd-hero-icon { opacity: 0.92; flex-shrink: 0; width: 20px; }
 .wd-hero-temp {
   display: flex;
   align-items: flex-start;

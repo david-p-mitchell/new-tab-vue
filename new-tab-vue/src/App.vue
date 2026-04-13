@@ -26,11 +26,14 @@
 
     <div class="dashboard-row">
       <FeedDashboard class="feeds-col" />
-      <CIWidget :articles="items" />
+      <CIWidget :articles="newsItems" />
     </div>
 
     <div>
+      <div style="display: flex; ">
       <DevotionalWidget />
+      <img style="margin:2px;aspect-ratio: calc(); max-height:350px;" :src="challiesImage" />
+      </div>
     </div>
 
   </div>
@@ -44,19 +47,32 @@ import FeedDashboard from './components/FeedDashboard.vue'
 import DevotionalWidget from './components/DevotionalWidget.vue'
 import CIWidget from './components/CIWidget.vue'
 import WeatherWidget from './components/WeatherWidget.vue'
-
+import { fetchChalliesImageFeed } from './composables/feeds/challies/useChalliesImageFeed'
 import { fetchEvangelicalTimesFeed } from './composables/feeds/useETFeed'
 import { fetchCINews } from './composables/feeds/useCIFeed'
 import { ref, onMounted } from 'vue'
 import type { NewsArticle } from './types/newsArticle'
+import { RssItem } from './types/rssFeedItem'
 
-const items = ref<NewsArticle[]>([])
+const newsItems = ref<NewsArticle[]>([])
+const challiesImages = ref<RssItem[]>([])
+const challiesImage = ref<string>('')
 
 onMounted(async () => {
   const etItems = await fetchEvangelicalTimesFeed()
   const ci = await fetchCINews()
-  items.value = [...etItems.filter(item => item.type === 'news'), ...ci]
-  console.log('News items loaded:', items.value)
+  newsItems.value = [...etItems.filter(item => item.genreType === 'news'), ...ci]
+  
+  const challies = await fetchChalliesImageFeed()
+  challiesImages.value = challies
+  console.log('Challies Images:', challiesImages.value)
+  const chosenImage = challiesImages.value[Math.floor(Math.random() * challiesImages.value.length)]
+  console.log('Chosen Image:', chosenImage)
+  const  newUrl = chosenImage.thumbnail!
+  .replace("/Th/", "/M/")
+  .replace("-Th.jpg", "-M.jpg");
+  challiesImage.value = newUrl
+  
 })
 </script>
 

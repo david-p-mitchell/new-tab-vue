@@ -1,44 +1,60 @@
+import { RssItem } from '@/types/rssFeedItem.js';
 import { readingTime } from './useReadingDurationCalculator.js';
-export function useT4LParser(item) {
+
+interface ParsedDevotional {
+  bibleVerse: string;
+  bibleRef: string;
+  content: string;
+  copyright: string;
+  duration: number;
+  img: string;
+  title: string;
+}
+
+interface ParsedSpurgeonDevotional extends ParsedDevotional {
+  bibleUrl: string;
+}
+
+export function useT4LParser(item: RssItem): ParsedDevotional | null {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(item.content, "text/html");
+  const doc = parser.parseFromString(item.content!, "text/html");
 
   const root = doc.querySelector("body");
   if (!root) return null;
 
   const firstImg = root.querySelector("img");
   if (firstImg) firstImg.remove();
+
   // 1️⃣ Bible verse (first paragraph)
   const bibleVerse =
-    root.querySelector("p")?.textContent.trim() || "";
+    root.querySelector("p")?.textContent?.trim() || "";
 
   // 2️⃣ Bible reference
   const bibleRef =
-    root.querySelector("strong a")?.textContent.trim() || "";
+    root.querySelector("strong a")?.textContent?.trim() || "";
 
   // 3️⃣ Copyright
   const copyright =
-    root.querySelector(".devo_copyright")?.textContent.trim() || "";
+    root.querySelector(".devo_copyright")?.textContent?.trim() || "";
 
   // 4️⃣ Main devotional content
-  const clone = root.cloneNode(true);
+  const clone = root.cloneNode(true) as HTMLElement;
 
   clone.querySelector("img")?.remove();
   clone.querySelector(".devo_copyright")?.remove();
 
   const paragraphs = clone.querySelectorAll("p");
-  if (paragraphs[0]) paragraphs[0].remove(); // verse
-  if (paragraphs[1]) paragraphs[1].remove(); // reference
+  if (paragraphs[0]) paragraphs[0].remove();
+  if (paragraphs[1]) paragraphs[1].remove();
 
   clone.querySelectorAll("br").forEach(br => br.remove());
 
-// Add a <br> after every <p>
-clone.querySelectorAll("p").forEach(p => {
-  const br = document.createElement("br");
-  p.after(br);
-});
+  clone.querySelectorAll("p").forEach(p => {
+    const br = document.createElement("br");
+    p.after(br);
+  });
 
-const content = clone.innerHTML.trim();
+  const content = clone.innerHTML.trim();
 
   return {
     bibleVerse,
@@ -46,14 +62,14 @@ const content = clone.innerHTML.trim();
     content,
     copyright,
     duration: readingTime(content),
-    img: firstImg ? firstImg.getAttribute("src") : '', 
-    title:item.title || 'Truth For Life Devotional'
+    img: firstImg ? firstImg.getAttribute("src") || "" : "",
+    title: item.title || "Truth For Life Devotional"
   };
 }
 
-export function useT4LSpurgeonParser(item) {
+export function useT4LSpurgeonParser(item: RssItem): ParsedSpurgeonDevotional | null {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(item.content, "text/html");
+  const doc = parser.parseFromString(item.content!, "text/html");
 
   const root = doc.querySelector(".detail-body") || doc.body;
   if (!root) return null;
@@ -61,46 +77,42 @@ export function useT4LSpurgeonParser(item) {
   const firstImg = root.querySelector("img");
   if (firstImg) firstImg.remove();
 
-  // 1️⃣ Bible reference (first strong a)
+  // 1️⃣ Bible reference
   const bibleRefEl = root.querySelector("strong a");
-  const bibleRef = bibleRefEl?.textContent.trim() || "";
+  const bibleRef = bibleRefEl?.textContent?.trim() || "";
   const bibleUrl = bibleRefEl?.getAttribute("href") || "";
 
   // 2️⃣ Bible verse (first non-empty <p>)
-  let firstP = null;
-  for (const p of root.querySelectorAll("p")) {
-    if (p.textContent.trim() !== "") {
+  let firstP: HTMLParagraphElement | null = null;
+
+  root.querySelectorAll("p").forEach(p => {
+    if (!firstP && p.textContent?.trim() !== "") {
       firstP = p;
-      break;
     }
-  }
-  const bibleVerse = firstP?.textContent.trim() || "";
+  });
+
+  const bibleVerse = firstP?.textContent?.trim() || "";
 
   // 3️⃣ Copyright
   const copyright =
-    root.querySelector(".devo_copyright")?.textContent.trim() || "";
+    root.querySelector(".devo_copyright")?.textContent?.trim() || "";
 
   // 4️⃣ Main content
-  const clone = root.cloneNode(true);
+  const clone = root.cloneNode(true) as HTMLElement;
 
-  // Remove first empty <p> + following <br>
   const firstEmptyP = clone.querySelector("p");
-  if (firstEmptyP && firstEmptyP.textContent.trim() === "") {
+  if (firstEmptyP && firstEmptyP.textContent?.trim() === "") {
     const next = firstEmptyP.nextElementSibling;
     if (next && next.tagName === "BR") next.remove();
     firstEmptyP.remove();
   }
 
-  // Remove reference block, first verse paragraph, copyright, images
   clone.querySelector("strong")?.remove();
   if (firstP) firstP.remove();
   clone.querySelector(".devo_copyright")?.remove();
   clone.querySelectorAll("img").forEach(img => img.remove());
-
-  // Remove existing <br> tags
   clone.querySelectorAll("br").forEach(br => br.remove());
 
-  // Add a <br> after each <p>
   clone.querySelectorAll("p").forEach(p => {
     const br = document.createElement("br");
     p.after(br);
@@ -115,8 +127,7 @@ export function useT4LSpurgeonParser(item) {
     content,
     copyright,
     duration: readingTime(content),
-    img: firstImg ? firstImg.getAttribute("src") : '', 
+    img: firstImg ? firstImg.getAttribute("src") || "" : "",
     title: item.title || "Truth For Life Devotional"
   };
 }
-

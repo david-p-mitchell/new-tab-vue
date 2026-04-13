@@ -35,15 +35,17 @@
         </div>
     </div>
 </template>
-<script setup>
-defineProps({
-    feelsLike: Number,
-    humidity: Number,
-    wind: Number,
-    uvIndex: Number,
-    sunrise: String,
-    sunset: String
-})
+<script setup lang="ts">
+interface Props {
+  feelsLike: number | string;
+  humidity: number | null;
+  wind: number | string;
+  uvIndex: number | string;
+  sunrise: string;
+  sunset: string;
+}
+
+defineProps<Props>();
 </script>
 
 <style scoped>
