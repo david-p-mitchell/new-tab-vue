@@ -1,4 +1,6 @@
+import { RssItem } from '@/types/rssFeedItem.js';
 import { readingTime } from './useReadingDurationCalculator.js';
+import { Devotional } from '@/types/devoPost.js';
 
 interface MediaGratiaeItem {
   content: string;
@@ -7,7 +9,7 @@ interface MediaGratiaeItem {
   isoDate?: string;
 }
 
-interface ParsedMediaGratiae {
+export interface ParsedMediaGratiae {
   bibleVerse: string;
   bibleRef: string;
   bibleUrl: string;
@@ -20,10 +22,10 @@ interface ParsedMediaGratiae {
 }
 
 export function useMediaGratiaeDevotionProcessor(
-  item: MediaGratiaeItem
-): ParsedMediaGratiae | null {
+  item: RssItem
+): Devotional | null {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(item.content, "text/html");
+  const doc = parser.parseFromString(item.content!, "text/html");
 
   const root = (doc.querySelector("body") as HTMLElement | null) || doc.body;
   if (!root) return null;
@@ -105,8 +107,9 @@ export function useMediaGratiaeDevotionProcessor(
   return {
     bibleVerse,
     bibleRef,
-    bibleUrl,
-    content: contentHtml,
+    period: "Media Gratiae",
+    link: bibleUrl,
+    body: contentHtml,
     copyright,
     duration: readingTime(contentHtml),
     img: firstImg?.getAttribute("src") || "",
@@ -115,7 +118,7 @@ export function useMediaGratiaeDevotionProcessor(
   };
 }
 
-function formatDate(item: MediaGratiaeItem): string {
+function formatDate(item: RssItem): string {
   const rawDate = item.pubDate || item.isoDate || new Date().toISOString();
   const date = new Date(rawDate);
 
