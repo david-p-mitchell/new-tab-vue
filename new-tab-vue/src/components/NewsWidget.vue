@@ -1,4 +1,6 @@
 <template>
+  
+  <p>News</p>
   <div class="ci-news">
 
     <div v-if="loading" class="news-status">Loading news...</div>
@@ -46,7 +48,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { RssPostItem } from '../types/rssFeedItem'
 import type { NewsArticle } from '../types/newsArticle'
 
 const props = defineProps<{
@@ -56,10 +57,7 @@ const props = defineProps<{
 const loading = ref(false)
 const error = ref(false)
 
-let currentUtterance: SpeechSynthesisUtterance | null = null
-const speakingArticle = ref<NewsArticle | null>(null)
-
-  const sortedArticles = computed(() => {
+const sortedArticles = computed(() => {
   return [...props.articles].sort((a, b) => {
     const dateA = new Date(a.pubDate || 0).getTime()
     const dateB = new Date(b.pubDate || 0).getTime()
@@ -111,7 +109,7 @@ function getNewsType(newsArticle: NewsArticle) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: 525px;
+  width: 300px;
   min-width: 180px;
   flex-shrink: 0;
   padding-right: 12px;
