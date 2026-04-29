@@ -1,5 +1,5 @@
 <template>
-  <div class="card">
+  <div class="card" :class="{ 'seen': !post.seen }">
     <button class="remove-btn" @click.prevent="emit('remove', post.link)">
       &times;
     </button>
@@ -15,6 +15,7 @@
         :src="post.thumbnail"
         :alt="post.title"
         class="card-img"
+        
       />
 
       <h3>{{ post.title }}</h3>
@@ -127,5 +128,8 @@ return ''
 
 .remove-btn:hover {
   background: #f87171;
+}
+.card.seen {
+  border: 1px solid #22c55e;
 }
 </style>

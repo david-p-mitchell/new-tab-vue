@@ -17,10 +17,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import FeedCard from './FeedCard.vue'
-import { useFeedProcessor } from '../composables/useFeedProcessor'
-import { useFeedStorage } from '../composables/useFeedStorage'
-import type { RSSFeedItem, RssPostItem } from '@/types/rssFeedItem'
+import { useFeedProcessor } from '../../composables/useFeedProcessor'
+import { useFeedStorage } from '../../composables/useFeedStorage'
+import type {  RssPostItem } from '@/types/rssFeedItem'
 
+import { fetch9MarksFeed } from '@/composables/feeds/use9MarksFeed'
 import { fetchBannerOfTruthFeed } from '@/composables/feeds/useBannerOfTruthFeed'
 import { fetchChalliesFeed } from '@/composables/feeds/challies/useChalliesMainFeed'
 import { fetchCrosswayFeed } from '@/composables/feeds/useCrosswayFeed'
@@ -46,6 +47,7 @@ async function loadAllFeeds(): Promise<void> {
 
   try {
     const results = await Promise.allSettled([
+      fetch9MarksFeed(),
       fetchBannerOfTruthFeed(),
       fetchChalliesFeed(),
       fetchCrosswayFeed(),
@@ -60,15 +62,15 @@ async function loadAllFeeds(): Promise<void> {
 
     for (const r of results) {
       if (r.status === 'fulfilled') {
-        const result = r.value.filter(post => post.genreType == 'generic')
-
-        allPosts2.push( ...result.map(item => ({...item, type: 'generic' }))
+        const result = r.value.filter(post => post.genreType == 'generic' || post.genreType == 'Article')
+          allPosts2.push( ...result.map(item => ({...item, type: 'generic' }))
         )
       } else {
         console.warn('Feed failed:', r.reason)
       }
     }
-    allPosts.value =allPosts2
+
+    allPosts.value = allPosts2
     processPosts2()
 
   } catch (e) {
@@ -80,8 +82,7 @@ async function loadAllFeeds(): Promise<void> {
 }
 
 function processPosts2() {
-  const processed = processPosts(allPosts.value)
-
+  const processed = processPosts(allPosts.value,5)
     saveSeenPosts(processed.map(p => p.link))
     posts.value = processed
 }
@@ -115,10 +116,10 @@ onMounted(loadAllFeeds)
 }
 
 .card-grid {
-  display: flex;
-  flex-direction: row;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: auto auto auto auto auto;
   scroll-behavior: smooth;
+  overflow-x: auto;
 }
 
 .feed-title {
