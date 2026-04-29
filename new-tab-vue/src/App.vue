@@ -1,42 +1,33 @@
 <template>
   <div class="container">
-    <div style="
-      display: grid;
-      grid-template-columns: auto auto 475px;
-      align-items: center;
-      width: 100%;
-    ">
-
-      <!-- Empty left space -->
-      <div></div>
-
-      <!-- Center Clock + Search -->
-      <div style="text-align: center;">
-        <ClockWidget />
-        <SearchBar />
-        <QuickLinks />
-      </div>
-
-      <!-- Weather on right -->
-      <div style="justify-self: end;">
-        <WeatherWidget />
-      </div>
-
+    <div class="left-side">
+      <Openprs />
     </div>
-
-    <div class="dashboard-row">
-      <FeedDashboard class="feeds-col" />
-      <CIWidget :articles="newsItems" />
+    <div class="middle-section">
+      <div class="mid-dashboard">
+        <div style="text-align: center;">
+          <ClockWidget />
+          <SearchBar />
+          <QuickLinks />
+        </div>
+        <div style="justify-self: end;">
+          <WeatherWidget /> 
+        </div>
+      </div>
+      <div style="display: flex; gap:16px; ">
+        <ChalliesQuoteWidget :size="'L'" />
+        <DevotionalWidget />
+        <div style="max-height: 250px; ">
+          <NewsWidget :articles="newsItems" />
+        </div>
+      </div>
+      <div class="dashboard-row">
+        <FeedDashboard class="feeds-col" />
+      </div>
     </div>
-
-    <div>
-      <div style="display: flex; ">
-      <DevotionalWidget />
-      <img v-if="!imageFailed" :src="challiesImage" @error="imageFailed = true" />
+    <div class="right-side">
       <YoutubeShortsWidget :videos="ytClips" />
-      </div>
     </div>
-
   </div>
 </template>
 
@@ -44,39 +35,29 @@
 import ClockWidget from './components/ClockWidget.vue'
 import SearchBar from './components/SearchBar.vue'
 import QuickLinks from './components/QuickLinks.vue'
-import FeedDashboard from './components/FeedDashboard.vue'
+import FeedDashboard from './components/feeds/FeedDashboard.vue'
 import DevotionalWidget from './components/DevotionalWidget.vue'
-import CIWidget from './components/CIWidget.vue'
+import NewsWidget from './components/NewsWidget.vue'
 import WeatherWidget from './components/WeatherWidget.vue'
-import { fetchChalliesImageFeed } from './composables/feeds/challies/useChalliesImageFeed'
 import { fetchEvangelicalTimesFeed } from './composables/feeds/useETFeed'
 import { fetchCINews } from './composables/feeds/useCIFeed'
 import { useYoutubeFeed, YoutubeVideo } from './composables/feeds/Youtube/useDesiringGodClipFeed'
 import { ref, onMounted } from 'vue'
 import type { NewsArticle } from './types/newsArticle'
-import { RssItem } from './types/rssFeedItem'
 import YoutubeShortsWidget from './components/YoutubeShortsWidget.vue'
+import Openprs from './components/gh/openprs.vue'
+import ChalliesQuoteWidget from './components/ChalliesQuoteWidget.vue'
 
 const newsItems = ref<NewsArticle[]>([])
-const challiesImages = ref<RssItem[]>([])
-const challiesImage = ref<string>('')
-const imageFailed = ref<boolean>(false)
+
   const ytClips = ref<YoutubeVideo[] | null>(null)
 
 onMounted(async () => {
   const etItems = await fetchEvangelicalTimesFeed()
   const ci = await fetchCINews()
   newsItems.value = [...etItems.filter(item => item.genreType === 'news'), ...ci]
-  
-  const challies = await fetchChalliesImageFeed()
-  challiesImages.value = challies
-  const chosenImage = challiesImages.value[Math.floor(Math.random() * challiesImages.value.length)]
-  const newUrl = chosenImage.thumbnail!
-  .replace("/Th/", "/M/")
-  .replace("-Th.jpg", "-M.jpg");
-  challiesImage.value = newUrl
-  
 })
+
 onMounted(async () => {
   const desiringGodClips = await useYoutubeFeed().fetchFeed("PLAcB0f-21Xj0S8NbP6WFTXaAl9Cl9eQG3");
   const jeremyWalkerClips = await useYoutubeFeed().fetchFeed("PLydzd6kZnPWcLX79S68ZxKyuHF9naWwkN")
@@ -92,10 +73,10 @@ onMounted(async () => {
 .dashboard-row {
   display: flex;
   flex-direction: row;
-  gap: 20px;
   align-items: flex-start;
   max-height: 200px;
   margin-top:12px;
+  margin-bottom:12px;
 }
 
 .dashboard-row {
@@ -122,8 +103,36 @@ body {
 }
 
 .container {
-  padding: 12px 0;
-  max-width: 1400px;
-  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 250px auto 250px;
+  padding: 12px;
+  align-items: start;
+}
+
+.middle-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+  max-width: 1660px;
+  width: 100%;
+}
+.mid-dashboard {
+  display: flex;
+  justify-content: space-around;      
+}
+
+.left-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 250px;
+  
+}
+.right-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 250px;
 }
 </style>
