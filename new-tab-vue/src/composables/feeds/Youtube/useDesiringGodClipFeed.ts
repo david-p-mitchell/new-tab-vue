@@ -55,7 +55,7 @@ export function useYoutubeFeed() {
     } while (nextPageToken)
 
     setCachedFeed(playlistId, videos)
-    console.log(videos)
+    
     return videos
   }
 
