@@ -8,7 +8,7 @@ export async function fetchLigonierFeed(): Promise<RSSFeedItem[]> {
                 if (cached) return cached
   const url = 'https://www.ligonier.org/rss.xml'
   const sourceName = 'Ligonier'
-  const days = 5
+  const days = 3
 
   try {
     const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`
