@@ -8,7 +8,7 @@ export async function fetchCrosswayFeed(): Promise<RSSFeedItem[]> {
             if (cached) return cached
   const url = 'https://www.crossway.org/articles/rss/'
   const sourceName = 'Crossway'
-  const days = 4
+  const days = 5
 
   try {
     const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`
