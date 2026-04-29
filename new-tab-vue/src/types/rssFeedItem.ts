@@ -21,6 +21,7 @@ export interface RssPostItem {
   sourceDays?: number
   extraInfo?: string
   categories?: string[]
+  seen?:boolean
 }
 
 export interface RssItem {
@@ -45,5 +46,6 @@ export interface DevotionalRssItem {
   pubDate?: string
   content?: string
   description?: string
+  audiostream?: string | null
 }
 
