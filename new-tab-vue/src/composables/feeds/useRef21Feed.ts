@@ -8,7 +8,7 @@ export async function fetchReformation21Feed(): Promise<RSSFeedItem[]> {
                 if (cached) return cached
   const url = 'http://reformation21.org/feed/'
   const sourceName = 'Reformation 21'
-  const days = 14
+  const days = 3
 
   try {
     const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`
