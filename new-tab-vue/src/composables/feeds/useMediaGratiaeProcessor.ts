@@ -1,7 +1,7 @@
 import { RssItem } from '@/types/rssFeedItem.js';
 import { readingTime } from '../useReadingDurationCalculator.js';
 
-interface ParsedMediaGratiae {
+export interface ParsedMediaGratiae {
   bibleVerse: string;
   bibleRef: string;
   bibleUrl: string;
