@@ -72,7 +72,7 @@ export function useFeedProcessor() {
           withinSourceDays = ageHours <= post.sourceDays * 24
         const isSeen = seen.has(post.link)
         const isClicked = clicked.has(post.link)
-
+        post.seen = isSeen
         let score = 0
 
         if (withinSourceDays) score += 3
@@ -98,7 +98,7 @@ export function useFeedProcessor() {
       .map((x) => x.post)
   }
 
-  function processPosts(rawPosts: RssPostItem[]): RssPostItem[] {
+  function processPosts(rawPosts: RssPostItem[], limit: number=5): RssPostItem[] {
     const now = new Date()
 
     const recent = rawPosts.filter((post) => {
@@ -113,7 +113,7 @@ export function useFeedProcessor() {
     return limitPerSource(
       rankPosts(limitChalliesALaCarte(removeDuplicates(recent)))
     )
-      .slice(0, 5)
+      .slice(0, limit)
       .sort(
         (a, b) =>
           new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
