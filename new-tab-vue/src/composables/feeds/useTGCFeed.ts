@@ -9,7 +9,7 @@ export async function fetchTgcFeed(): Promise<RSSFeedItem[]> {
 
   const url = 'https://www.thegospelcoalition.org/feed/'
   const sourceName = 'TGC'
-  const days = 5
+  const days = 3
 
   try {
     const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`
