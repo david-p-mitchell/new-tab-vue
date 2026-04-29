@@ -2,14 +2,16 @@
   <div class="wd-daily-wrap">
     <div class="wd-daily-scroll">
       <div
-        v-for="(d, i) in daily.slice(1,4)"
+        v-for="(d, i) in daily.slice(1,5)"
         :key="i"
         class="wd-day-card"
-        :class="{ today: i === 0 }"
+        :class="[{ today: i === 0 }, weatherClass(d.condition)]"
       >
+      <div style="display: flex;">
         <p class="wd-day-name">{{ d.label }}</p>
 
         <div class="wd-day-icon" v-html="d.icon"></div>
+        </div>
 
         <p class="wd-day-cond">{{ d.condition }}</p>
 
@@ -33,10 +35,12 @@
 </template>
 
 <script setup lang="ts">
+import { WeatherCondition } from '../WeatherWidget.vue';
+
 interface DailyItem {
   label: string;
   icon: string;
-  condition: string;
+  condition: WeatherCondition;
   loC: number;
   hiC: number;
   precip: number;
@@ -47,6 +51,19 @@ defineProps<{
   convertTemp: (c: number) => number | string;
   dayFillStyle: (d: DailyItem) => Record<string, string>;
 }>();
+
+function weatherClass(condition: WeatherCondition): string {
+  const c = condition.toLowerCase()
+
+  if (c.includes('sun') || c.includes('clear')) return 'sunny'
+  if (c.includes('cloud')) return 'cloudy'
+  if (c.includes('rain') || c.includes('drizzle')) return 'rainy'
+  if (c.includes('storm') || c.includes('thunder')) return 'stormy'
+  if (c.includes('snow') || c.includes('sleet')) return 'snowy'
+  if (c.includes('fog') || c.includes('mist')) return 'foggy'
+
+  return 'default'
+}
 </script>
 
 <style scoped>
@@ -151,6 +168,42 @@ defineProps<{
   font-size: 7px;
   opacity: 0.6;
   line-height: 1;
+}
+/* Sunny */
+.wd-day-card.sunny {
+  background: linear-gradient(180deg, #c7ca0e, #c57c0f);
+  border-color: rgba(255,255,255,0.25);
+}
+
+/* Cloudy */
+.wd-day-card.cloudy {
+  background: linear-gradient(180deg, #7c8796, #5e6875);
+}
+
+/* Rainy */
+.wd-day-card.rainy {
+  background: linear-gradient(180deg, #4a74b5, #2f4e84);
+}
+
+/* Stormy */
+.wd-day-card.stormy {
+  background: linear-gradient(180deg, #43434d, #222);
+}
+
+/* Snowy */
+.wd-day-card.snowy {
+  background: linear-gradient(180deg, #dfefff, #b8d2ea);
+  color: #1e2d3f;
+}
+
+/* Foggy */
+.wd-day-card.foggy {
+  background: linear-gradient(180deg, #9ca3af, #6b7280);
+}
+
+/* Default */
+.wd-day-card.default {
+  background: rgba(255,255,255,0.08);
 }
 
 </style>

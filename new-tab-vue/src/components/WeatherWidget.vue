@@ -1,6 +1,4 @@
 <template>
-    <div class="wd-bg-layer"></div>
-
     <div class="wd-shell">
 
       <!-- ── LEFT PANEL ── -->
@@ -27,8 +25,6 @@
             />
           </div>
           <NowOverview :mainIcon="mainIcon" :temp="temp" :unit="unit" :condition="condition" />
-
-            <CurrentStats :feelsLike="feelsLike" :humidity="humidity" :wind="wind" :uvIndex="uvIndex" :sunrise="sunrise" :sunset="sunset" />
           </div>
         </header>
 
@@ -41,17 +37,48 @@
           <p>{{ error }}</p>
           <button class="wd-retry" @click="fetchWeather">Retry</button>
         </div>
-
-        <template v-else>
-          
-
-          
-          <TodayRange :todayHi="todayHi" :todayLo="todayLo" :hilowStyle="hilowStyle" :hilowDotPos="hilowDotPos" />
-        </template>
         <div class="wd-forecasts">
-            <HourlyForecast :hourly="hourly" />
-            <DailyForecast :daily="daily" :convertTemp="convertTemp" :dayFillStyle="dayFillStyle" />
-         </div>
+        <div>
+        <TodayRange :todayHi="todayHi" :todayLo="todayLo" :hilowStyle="hilowStyle" :hilowDotPos="hilowDotPos" />
+        <HourlyForecast :hourly="hourly" />
+        <DailyForecast :daily="daily" :convertTemp="convertTemp" :dayFillStyle="dayFillStyle" />
+        </div>
+        <div class="todays-stats">
+          <div class="today-stat">
+            <div class="wd-stat">
+              <SunIcon />
+            </div>
+            <p>{{sunrise }} - {{sunset }}</p>
+          </div>
+          <div class="today-stat">
+            <div class="wd-stat">
+              <FeelsLikeIcon />
+            </div>
+            <p>{{ feelsLike }}°</p>
+          </div>
+          <div class="today-stat">
+            <div class="wd-stat">
+              <HumidityIcon />
+            </div>
+            <p>{{ humidity+ "%" }}</p>
+          </div>
+          <div class="today-stat">
+            <div class="wd-stat">
+              <WindIcon />
+            </div>
+            <p>{{ wind }}<small>km/h</small></p>
+          </div>
+          <div class="today-stat">
+            <div class="wd-stat">
+              <FullSunIcon/>
+            </div>
+            <p>{{ uvIndex }}</p>
+          </div>
+        </div>
+            
+        </div>
+            
+        
       </aside>
 
     </div>
@@ -59,12 +86,15 @@
 
 <script lang="ts">
 import { defineComponent, nextTick } from 'vue';
-
-import CurrentStats from './weather/CurrentStats.vue';
 import NowOverview from './weather/NowOverview.vue';
 import TodayRange from './weather/TodayRange.vue';
 import DailyForecast from './weather/DailyForecast.vue';
 import HourlyForecast from './weather/HourlyForecast.vue';
+import HumidityIcon from './weather/icons/humidityIcon.vue';
+import SunIcon from './weather/icons/sunIcon.vue';
+import FeelsLikeIcon from './weather/icons/feelsLikeIcon.vue';
+import FullSunIcon from './weather/icons/fullSunIcon.vue';
+import WindIcon from './weather/icons/windIcon.vue';
 
 type WeatherUnit = 'C' | 'F';
 
@@ -75,26 +105,38 @@ interface HourlyItem {
   icon: string;
   precip: number;
   barPct: number;
+  condition: WeatherCondition;
 }
 
 interface DailyItem {
   label: string;
   icon: string;
-  condition: string;
+  condition: WeatherCondition;
   hiC: number;
   loC: number;
   precip: number;
 }
+export type WeatherCondition =
+  | 'sunny'
+  | 'cloudy'
+  | 'rainy'
+  | 'stormy'
+  | 'snowy'
+  | 'foggy'
 
 export default defineComponent({
   name: 'WeatherDashboard',
 
   components: {
-    CurrentStats,
     NowOverview,
     TodayRange,
     DailyForecast,
     HourlyForecast,
+    HumidityIcon,
+    SunIcon,
+    FeelsLikeIcon,
+    FullSunIcon,
+    WindIcon,
   },
 
   data() {
@@ -198,17 +240,6 @@ export default defineComponent({
         day: 'numeric',
         month: 'long',
       });
-    },
-
-    skyTheme(): string {
-      const c = this.weatherCode;
-      if (!c || c <= 1) return 'sky-clear';
-      if (c <= 3) return 'sky-cloudy';
-      if (c <= 48) return 'sky-fog';
-      if (c <= 67) return 'sky-rain';
-      if (c <= 77) return 'sky-snow';
-      if (c <= 82) return 'sky-shower';
-      return 'sky-storm';
     },
 
     mainIcon(): string {
@@ -359,6 +390,7 @@ export default defineComponent({
               precip:
                 Math.round((wx.hourly.precipitation?.[i] || 0) * 10) / 10,
               barPct,
+              condition: this.weatherCodeToCondition(wx.hourly.weather_code[i]) as WeatherCondition,
             };
           });
 
@@ -370,7 +402,7 @@ export default defineComponent({
           return {
             label: i === 0 ? 'Today' : dayLabels[d.getDay()],
             icon: this.codeToSvg(wx.daily.weather_code[i], 22),
-            condition: this.codeToLabel(wx.daily.weather_code[i]),
+            condition: this.weatherCodeToCondition(wx.daily.weather_code[i]) as WeatherCondition,
             hiC: wx.daily.temperature_2m_max[i],
             loC: wx.daily.temperature_2m_min[i],
             precip:
@@ -393,6 +425,16 @@ export default defineComponent({
         hour: '2-digit',
         minute: '2-digit',
       });
+    },
+
+    weatherCodeToCondition(code: number): WeatherCondition {
+      if (!code || code <= 1) return 'sunny';
+      if (code <= 3) return 'cloudy';
+      if (code <= 48) return 'foggy';
+      if (code <= 67) return 'rainy';
+      if (code <= 82) return 'rainy';
+      if (code <= 77) return 'snowy';
+      return 'stormy';
     },
 
     codeToLabel(code: number): string {
@@ -458,15 +500,6 @@ button { cursor: pointer; background: none; border: none; font-family: inherit; 
   transition: background 1s ease;
 }
 
-.wd-bg-layer {
-  position: absolute;
-  inset: 0;
-  opacity: 0.18;
-  background-image: radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.6) 0%, transparent 60%),
-                    radial-gradient(ellipse at 80% 80%, rgba(255,255,255,0.3) 0%, transparent 50%);
-  pointer-events: none;
-}
-
 /* SKY THEMES */
 .sky-clear  { background: linear-gradient(135deg, #0f4c96 0%, #1a73c8 40%, #4fa3e3 100%); color: #fff; }
 .sky-cloudy { background: linear-gradient(135deg, #3d5467 0%, #607d8b 50%, #90a4ae 100%); color: #fff; }
@@ -481,7 +514,6 @@ button { cursor: pointer; background: none; border: none; font-family: inherit; 
   
   grid-template-columns: 450px 1fr;
   gap: 16px;
-  width: 100%;
   max-width: 960px;
   position: relative;
   z-index: 1;
@@ -496,7 +528,6 @@ button { cursor: pointer; background: none; border: none; font-family: inherit; 
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   max-width: 450px;
-  width: 100%;
 }
 
 /* ── HEADER ── */
@@ -592,6 +623,31 @@ button { cursor: pointer; background: none; border: none; font-family: inherit; 
 .wd-forecasts {
     display: flex;
     justify-content: space-between;
+    gap:2px;
+}
+
+.todays-stats {
+  display:flex;
+  flex-direction: column;
+  gap: 0;
+}
+.today-stat {
+  display: flex;
+  font-size: 0.5rem;
+}
+.wd-stat {
+ 
+  height: 24px;
+  opacity: 0.7;
+}
+.wd-stat svg {
+  width: 24px;
+  height: 24px;
+  opacity: 0.7;
+}
+
+.wd-forecasts p {
+  font-size: 0.5rem;
 }
 
 
